@@ -10,6 +10,6 @@ pub(crate) fn clear() {
     print!("\x1B[H");
 }
 
-pub(crate) fn sleep(n : f64) {
+pub(crate) fn sleep(n: f64) {
     thread::sleep(Duration::from_secs_f64(n));
 }

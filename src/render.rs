@@ -4,17 +4,15 @@
 
 #[derive(Debug, Clone)]
 pub struct Render {
-    frames : Vec<String>
+    frames: Vec<String>,
 }
 
 impl Render {
     pub fn new() -> Self {
-        Self {
-            frames : Vec::new()
-        }
+        Self { frames: Vec::new() }
     }
 
-    pub fn update(&mut self, frame : String) {
+    pub fn update(&mut self, frame: String) {
         self.frames.push(frame);
     }
 

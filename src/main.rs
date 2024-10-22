@@ -1,35 +1,29 @@
 /*
-    Previous problem, needed to store frames
+    Remaking the game Space Invaders in ASCII
 */
-mod render;
+mod constants;
 mod engine;
+mod render;
 mod tool;
-use std::thread::{self, JoinHandle};
-use std::sync::{Arc, RwLock};
 use render::Render;
 
-
 fn main() {
-    let mut threads: Vec<JoinHandle<()>> = Vec::new();
-    let render = Arc::new(RwLock::new(render::Render::new()));
-    for i in 0..2 {
-        let render_ptr = Arc::clone(&render);
-        let j = thread::spawn(move || {
-            let mut r = render_ptr.write().unwrap();
-            r.update(String::from("+"));
-        });
-        threads.push(j);
-    }
-    for t in threads {
-        let _ = t.join();
-    }
+    // testing out the pool functions
+    let dimensions: (usize, usize) = (20, 10);
+    let mut eng = engine::Engine::new(dimensions);
+    let mut render = Render::new();
+    let mut pool: [(usize, usize); 3] = [(1, 0), (1, 1), (1, 2)];
+    engine::spawn_pool(&mut eng, &pool);
+    render.update(eng.output());
+    engine::move_pool_right(&mut eng, &mut pool);
+    render.update(eng.output());
     loop {
-        let mut prender = render.write().unwrap();
-        let value = prender.output();
-        if value.is_none() {
+        if let Some(frame) = render.output() {
+            println!("{}", frame);
+            //tool::clear();
+            tool::sleep(0.05);
+        } else {
             break;
         }
-        println!("{}", value.unwrap());
-        tool::clear();
     }
 }
