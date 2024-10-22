@@ -42,6 +42,11 @@ impl Engine {
         }
         interface
     }
+
+    pub fn reset(&mut self, pixel : (usize, usize)) {
+        let (x, y) = pixel;
+        self.matrix[y][x] = BACKGROUND_CHAR;
+    }
 }
 
 pub fn spawn_pool(engine: &mut Engine, pool: &[(usize, usize)]) {
@@ -51,21 +56,33 @@ pub fn spawn_pool(engine: &mut Engine, pool: &[(usize, usize)]) {
 }
 
 pub fn move_pool_right(engine: &mut Engine, pool: &mut [(usize, usize)]) {
-    for i in 0..pool.len() {
-        let new = (pool[i].0 + 1, pool[i].1);
-        engine.swap(pool[i], new);
-        pool[i] = new;
+    for coor in pool {
+        let new = (coor.0 + 1, coor.1);
+        engine.swap(*coor, new);
+        *coor = new;
     }
 }
 
-pub fn move_pool_left(engine: &mut Engine, pool: &mut Vec<(usize, usize)>) {
-    todo!()
+pub fn move_pool_left(engine: &mut Engine, pool: &mut [(usize, usize)]) {
+    for coor in pool {
+        let new = (coor.0 - 1, coor.1);
+        engine.swap(*coor, new);
+        *coor = new;
+    }
 }
 
-pub fn move_pool_up(engine: &mut Engine, pool: &mut Vec<(usize, usize)>) {
-    todo!()
+pub fn move_pool_up(engine: &mut Engine, pool: &mut [(usize, usize)]) {
+    for coor in pool {
+        let new = (coor.0, coor.1 - 1);
+        engine.swap(*coor, new);
+        *coor = new;
+    }
 }
 
-pub fn move_pool_down(engine: &mut Engine, pool: &mut Vec<(usize, usize)>) {
-    todo!()
+pub fn move_pool_down(engine: &mut Engine, pool: &mut [(usize, usize)]) {
+    for coor in pool {
+        let new = (coor.0, coor.1 + 1);
+        engine.swap(*coor, new);
+        *coor = new;
+    }
 }

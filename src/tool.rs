@@ -4,9 +4,13 @@
 use std::thread;
 use std::time::Duration;
 
+/// Clears the terminal screen
 pub(crate) fn clear() {
-    // print!("\x1B[2J\x1B[1;1H"); // meant to clear the terminal screen
-    // Move cursor back to the top-left before the next iteration
+    print!("\x1B[2J\x1B[1;1H");
+}
+
+/// Returns the cursor to the top-left of the screen
+pub(crate) fn refresh() {
     print!("\x1B[H");
 }
 
