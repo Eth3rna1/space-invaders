@@ -4,22 +4,25 @@
 
 #[derive(Debug, Clone)]
 pub struct Render {
-    frames: Vec<String>,
+    pub frame_count : usize,
+    frames: Vec<String>
 }
 
 impl Render {
     pub fn new() -> Self {
-        Self { frames: Vec::new() }
+        Self { frames: Vec::new(), frame_count : 0 }
     }
 
     pub fn update(&mut self, frame: String) {
+        self.frame_count += 1;
         self.frames.push(frame);
     }
 
     pub fn output(&mut self) -> Option<String> {
-        if self.frames.is_empty() {
+        if self.frame_count == 0 {
             return None;
         }
+        self.frame_count -= 1;
         Some(self.frames.remove(0))
     }
 }

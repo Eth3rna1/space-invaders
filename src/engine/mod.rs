@@ -1,6 +1,5 @@
-/*
-    Ascii renderer
-*/
+pub mod pool;
+pub mod art;
 use crate::constants::{BACKGROUND_CHAR, PIXEL_CHAR};
 
 pub struct Engine {
@@ -8,6 +7,7 @@ pub struct Engine {
     pub width: usize,
     matrix: Vec<Vec<char>>,
 }
+
 
 impl Engine {
     pub fn new(dimensions: (usize, usize)) -> Self {
@@ -22,15 +22,23 @@ impl Engine {
         }
     }
 
+
+    pub fn populated(&self, coordinate : (usize, usize)) -> bool {
+        return self.matrix[coordinate.1][coordinate.0] == BACKGROUND_CHAR
+    }
+
+
     pub fn spawn(&mut self, c: char, coordinate: (usize, usize)) {
         self.matrix[coordinate.1][coordinate.0] = c;
     }
+
 
     pub fn swap(&mut self, c1: (usize, usize), c2: (usize, usize)) {
         let tmp = self.matrix[c1.1][c1.0];
         self.matrix[c1.1][c1.0] = self.matrix[c2.1][c2.0];
         self.matrix[c2.1][c2.0] = tmp;
     }
+
 
     pub fn output(&self) -> String {
         let mut interface = String::new();
@@ -43,46 +51,9 @@ impl Engine {
         interface
     }
 
+
     pub fn reset(&mut self, pixel : (usize, usize)) {
         let (x, y) = pixel;
         self.matrix[y][x] = BACKGROUND_CHAR;
-    }
-}
-
-pub fn spawn_pool(engine: &mut Engine, pool: &[(usize, usize)]) {
-    for coordinate in pool {
-        engine.spawn(PIXEL_CHAR, *coordinate);
-    }
-}
-
-pub fn move_pool_right(engine: &mut Engine, pool: &mut [(usize, usize)]) {
-    for coor in pool {
-        let new = (coor.0 + 1, coor.1);
-        engine.swap(*coor, new);
-        *coor = new;
-    }
-}
-
-pub fn move_pool_left(engine: &mut Engine, pool: &mut [(usize, usize)]) {
-    for coor in pool {
-        let new = (coor.0 - 1, coor.1);
-        engine.swap(*coor, new);
-        *coor = new;
-    }
-}
-
-pub fn move_pool_up(engine: &mut Engine, pool: &mut [(usize, usize)]) {
-    for coor in pool {
-        let new = (coor.0, coor.1 - 1);
-        engine.swap(*coor, new);
-        *coor = new;
-    }
-}
-
-pub fn move_pool_down(engine: &mut Engine, pool: &mut [(usize, usize)]) {
-    for coor in pool {
-        let new = (coor.0, coor.1 + 1);
-        engine.swap(*coor, new);
-        *coor = new;
     }
 }
