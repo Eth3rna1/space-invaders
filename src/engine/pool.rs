@@ -4,7 +4,7 @@ use crate::constants::{BACKGROUND_CHAR, PIXEL_CHAR};
 
 pub fn spawn_pool(engine: &mut Engine, pool: &[(usize, usize)]) {
     for coordinate in pool {
-        engine.spawn(PIXEL_CHAR, *coordinate);
+        engine.spawn(*coordinate);
     }
 }
 
@@ -33,7 +33,8 @@ pub fn move_pool_up(engine: &mut Engine, pool: &mut [(usize, usize)]) {
 }
 
 pub fn move_pool_down(engine: &mut Engine, pool: &mut [(usize, usize)]) {
-    for coor in pool {
+    // reversed the array
+    for coor in pool.into_iter().rev() {
         let new = (coor.0, coor.1 + 1);
         engine.swap(*coor, new);
         *coor = new;
