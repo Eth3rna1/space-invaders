@@ -3,6 +3,7 @@
 */
 mod constants;
 mod engine;
+mod math;
 mod render;
 mod tool;
 mod tests;
@@ -12,5 +13,7 @@ use render::Render;
 
 
 fn main() {
-    tests::single_zigzag();
+    //tests::zigzag();
+    //tests::line(); // not yet implemented
+    println!("Compiled Successfully!");
 }
