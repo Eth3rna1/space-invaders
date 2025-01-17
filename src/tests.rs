@@ -1,6 +1,6 @@
 use crate::engine::Engine;
 use crate::math; // fraction()
-use crate::pool;
+use crate::engine::sprite;
 use crate::render::Render;
 use crate::tool; // clear() refresh()
 use crate::constants;
@@ -19,13 +19,13 @@ pub(crate) fn zigzag() {
     let dimensions: (usize, usize) = (100, 20);
     let mut engine = Engine::new(dimensions);
 
-    let mut pool: [(usize, usize); 3] = [
+    let mut sprite: [(usize, usize); 3] = [
         (0, engine.length / 2 - 1),
         (0, engine.length / 2),
         (0, engine.length / 2 + 1)
     ];
 
-    pool::spawn_pool(&mut engine, &mut pool);
+    sprite::spawn_sprite(&mut engine, &mut sprite);
     let mut render = Render::new();
     //let mut point = (0, engine.length / 2); // starts at right middle
     //engine.spawn(point);
@@ -43,11 +43,11 @@ pub(crate) fn zigzag() {
             }
         }
         match direction {
-            Direction::Up   => pool::move_pool_up(&mut engine, &mut pool),
-            Direction::Down => pool::move_pool_down(&mut engine, &mut pool),
+            Direction::Up   => sprite::move_sprite_up(&mut engine, &mut sprite),
+            Direction::Down => sprite::move_sprite_down(&mut engine, &mut sprite),
             _ => ()
         }
-        pool::move_pool_right(&mut engine, &mut pool);
+        sprite::move_sprite_right(&mut engine, &mut sprite);
         render.update(engine.output());
         match direction {
             Direction::Up => count -= 1,

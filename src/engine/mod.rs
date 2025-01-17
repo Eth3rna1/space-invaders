@@ -2,12 +2,12 @@
     Status::Off represents a background character
     Status::On represents a pixel char
 */
-pub mod pool;
+pub mod sprite;
 pub mod art;
 use crate::constants::{BACKGROUND_CHAR, PIXEL_CHAR};
 
 
-type Coordinate = (usize, usize);
+pub type Coordinate = (usize, usize);
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -67,11 +67,6 @@ impl Engine {
                 }
             }
             interface += "\n";
-            /*
-            if r != self.length - 1 {
-                interface += "\n";
-            }
-            */
         }
         interface
     }
