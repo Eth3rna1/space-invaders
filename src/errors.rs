@@ -8,6 +8,7 @@ pub enum ErrorKind {
     Other
 }
 
+#[derive(Debug, Clone)]
 pub struct Error {
     kind : ErrorKind,
     diagnosis : String

@@ -3,7 +3,7 @@
     Status::On represents a pixel char
 */
 pub mod sprite;
-pub mod art;
+//pub mod art;
 use crate::constants::{BACKGROUND_CHAR, PIXEL_CHAR};
 
 
@@ -16,6 +16,7 @@ pub enum Status {
     Off
 }
 
+#[derive(Debug, Clone)]
 pub struct Engine {
     pub length: usize,
     pub width: usize,
