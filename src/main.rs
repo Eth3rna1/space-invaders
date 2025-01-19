@@ -14,28 +14,51 @@ use engine::{Engine, sprite, Coordinate};
 use std::rc::Rc;
 use std::cell::RefCell;
 
-fn main() {
-    let mut frames: Vec<String> = Vec::new();
-    let dimensions = (100usize, 30usize);
-    let mut engine = Rc::new(RefCell::new(Engine::new(dimensions)));
-    let square_coordinates: [Coordinate; 4] = [
+fn output_buffers(renderer: &mut render::Render) {
+    tool::clear();
+    while let Some(frame) = renderer.swap() {
+        print!("{}", frame);
+        tool::sleep(0.5);
+        tool::refresh();
+    }
+}
+
+fn main() -> Result<(), errors::Error> {
+    let mut renderer = render::Render::new();
+    let engine = Engine::new((100, 20)).as_rc();
+    let mut sprite1 = sprite::Sprite::new(engine.clone(), vec![
         (0, 0),
         (0, 1),
         (1, 0),
         (1, 1)
-    ];
-    let mut square: sprite::Sprite = sprite::Sprite::new(Rc::clone(&engine), square_coordinates).unwrap();
-    square.spawn();
-    frames.push(engine.borrow().output());
-    square.move_down();
-    frames.push(engine.borrow().output());
-    tool::clear();
-    use std::thread;
-    use std::time::Duration;
-    for frame in frames.iter() {
-        println!("{}", frame);
-        thread::sleep(Duration::from_secs(1));
-        tool::refresh();
-    }
-    //tool::clear();
+    ])?;
+    let sprite2_coordinates: Vec<Coordinate> = {
+        let eng = engine.borrow();
+        let sprite2_coordinates = vec![
+            (eng.width - 1, 0),
+            (eng.width - 1, 1),
+            (eng.width - 2, 0),
+            (eng.width - 2, 1)
+        ];
+        sprite2_coordinates
+    };
+    let mut sprite2 = sprite::Sprite::new(engine.clone(), sprite2_coordinates)?;
+    sprite1.spawn();
+    sprite2.spawn();
+    renderer.push(engine.borrow().output());
+    sprite1.move_down()?;
+    renderer.push(engine.borrow().output());
+    sprite1.move_down()?;
+    renderer.push(engine.borrow().output());
+    sprite2.move_down()?;
+    renderer.push(engine.borrow().output());
+    sprite1.move_right()?;
+    renderer.push(engine.borrow().output());
+    sprite2.move_down()?;
+    renderer.push(engine.borrow().output());
+    sprite2.move_left()?;
+    renderer.push(engine.borrow().output());
+    output_buffers(&mut renderer);
+    Ok(())
 }
+

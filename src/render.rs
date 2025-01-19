@@ -13,12 +13,12 @@ impl Render {
         Self { frames: Vec::new(), frame_count : 0 }
     }
 
-    pub fn update(&mut self, frame: String) {
+    pub fn push(&mut self, frame: String) {
         self.frame_count += 1;
         self.frames.push(frame);
     }
 
-    pub fn output(&mut self) -> Option<String> {
+    pub fn swap(&mut self) -> Option<String> {
         if self.frame_count == 0 {
             return None;
         }

@@ -5,6 +5,7 @@ use std::convert::AsRef;
 pub enum ErrorKind {
     Collided,
     OutOfBounds,
+    InexistentSprite,
     Other
 }
 

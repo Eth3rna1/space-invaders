@@ -6,6 +6,8 @@ pub mod sprite;
 //pub mod art;
 use crate::constants::{BACKGROUND_CHAR, PIXEL_CHAR};
 
+use std::rc::Rc;
+use std::cell::RefCell;
 
 pub type Coordinate = (usize, usize);
 
@@ -35,6 +37,10 @@ impl Engine {
             width,
             matrix,
         }
+    }
+
+    pub fn as_rc(self) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(self))
     }
 
     pub fn is_on(&self, coordinate : Coordinate) -> bool {
