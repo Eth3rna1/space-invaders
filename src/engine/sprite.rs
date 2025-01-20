@@ -87,8 +87,9 @@ impl Sprite {
 
     pub fn spawn(&mut self) {
         let mut engine = self.engine.borrow_mut();
-        spawn_sprite(&mut engine, &mut self.coordinates);
-        drop(engine);
+        {
+            spawn_sprite(&mut engine, &mut self.coordinates);
+        }
     }
 
     pub fn move_up(&mut self) -> Result<(), Error> {
@@ -109,8 +110,9 @@ Engine's Dimensions: ({}, {})",
                 ));
             }
         }
-        move_sprite_down(&mut engine, &mut self.coordinates);
-        drop(engine);
+        {
+            move_sprite_down(&mut engine, &mut self.coordinates);
+        }
         self.far_top -= 1;
         self.far_bottom -= 1;
         Ok(())
@@ -119,6 +121,7 @@ Engine's Dimensions: ({}, {})",
     pub fn move_left(&mut self) -> Result<(), Error> {
         let mut engine = self.engine.borrow_mut();
         {
+            // error case
             if self.far_left as isize - 1 < 0 {
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
@@ -136,7 +139,6 @@ Engine's Dimensions: ({}, {})",
         {
             move_sprite_left(&mut engine, &mut self.coordinates);
         }
-        drop(engine);
         self.far_left -= 1;
         self.far_right -= 1;
         Ok(())
@@ -146,6 +148,7 @@ Engine's Dimensions: ({}, {})",
         // reminder that the array gets reversed
         let mut engine = self.engine.borrow_mut();
         {
+            // error case
             if self.far_right + 1 >= engine.width {
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
@@ -163,7 +166,6 @@ Engine's Dimensions: ({}, {})",
         {
             move_sprite_right(&mut engine, &mut self.coordinates);
         }
-        drop(engine);
         self.far_right += 1;
         self.far_left += 1;
         Ok(())
@@ -174,6 +176,7 @@ Engine's Dimensions: ({}, {})",
         // assert the first element
         let mut engine = self.engine.borrow_mut();
         {
+            // error case
             if self.far_bottom + 1 >= engine.length {
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
@@ -191,7 +194,6 @@ Engine's Dimensions: ({}, {})",
         {
             move_sprite_down(&mut engine, &mut self.coordinates);
         }
-        drop(engine);
         self.far_bottom += 1;
         self.far_top += 1;
         Ok(())
