@@ -6,16 +6,15 @@ pub mod sprite;
 //pub mod art;
 use crate::constants::{BACKGROUND_CHAR, PIXEL_CHAR};
 
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 pub type Coordinate = (usize, usize);
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
     On,
-    Off
+    Off,
 }
 
 #[derive(Debug, Clone)]
@@ -24,7 +23,6 @@ pub struct Engine {
     pub width: usize,
     matrix: Vec<Vec<Status>>,
 }
-
 
 impl Engine {
     pub fn new(dimensions: (usize, usize)) -> Self {
@@ -43,19 +41,17 @@ impl Engine {
         Rc::new(RefCell::new(self))
     }
 
-    pub fn is_on(&self, coordinate : Coordinate) -> bool {
+    pub fn is_on(&self, coordinate: Coordinate) -> bool {
         self.matrix[coordinate.1][coordinate.0] == Status::On
     }
 
-    pub fn is_off(&self, coordinate : Coordinate) -> bool {
+    pub fn is_off(&self, coordinate: Coordinate) -> bool {
         self.matrix[coordinate.1][coordinate.0] == Status::Off
     }
-
 
     pub fn spawn(&mut self, coordinate: Coordinate) {
         self.matrix[coordinate.1][coordinate.0] = Status::On;
     }
-
 
     pub fn swap(&mut self, c1: Coordinate, c2: Coordinate) {
         let tmp = self.matrix[c1.1][c1.0];
@@ -63,14 +59,13 @@ impl Engine {
         self.matrix[c2.1][c2.0] = tmp;
     }
 
-
     pub fn output(&self) -> String {
         let mut interface = String::new();
         for r in 0..self.length {
             for c in 0..self.width {
                 match self.matrix[r][c] {
-                    Status::On  => interface.push(PIXEL_CHAR),
-                    Status::Off => interface.push(BACKGROUND_CHAR)
+                    Status::On => interface.push(PIXEL_CHAR),
+                    Status::Off => interface.push(BACKGROUND_CHAR),
                 }
             }
             interface += "\n";
@@ -78,8 +73,7 @@ impl Engine {
         interface
     }
 
-
-    pub fn reset(&mut self, pixel : Coordinate) {
+    pub fn reset(&mut self, pixel: Coordinate) {
         let (x, y) = pixel;
         self.matrix[y][x] = Status::Off;
     }

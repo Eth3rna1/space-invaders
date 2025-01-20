@@ -1,13 +1,12 @@
-use crate::engine::Engine;
-use crate::engine::Coordinate;
 use crate::constants::{BACKGROUND_CHAR, PIXEL_CHAR};
+use crate::engine::Coordinate;
+use crate::engine::Engine;
 use crate::errors::{Error, ErrorKind};
 
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
-
-fn _sort_coordinates(coordinates : &mut [Coordinate]) {
+fn _sort_coordinates(coordinates: &mut [Coordinate]) {
     // Sorting by x first, then by y
     coordinates.sort_by(|a, b| {
         if a.0 == b.0 {
@@ -18,21 +17,23 @@ fn _sort_coordinates(coordinates : &mut [Coordinate]) {
     });
 }
 
-
 #[derive(Debug, Clone)]
 pub struct Sprite {
-    engine      : Rc<RefCell<Engine>>,
-    coordinates : Vec<Coordinate>,
-    far_right   : usize,
-    far_left    : usize,
-    far_top     : usize,
-    far_bottom  : usize
+    engine: Rc<RefCell<Engine>>,
+    coordinates: Vec<Coordinate>,
+    far_right: usize,
+    far_left: usize,
+    far_top: usize,
+    far_bottom: usize,
 }
 
 impl Sprite {
-    pub fn new(engine : Rc<RefCell<Engine>>, coordinates : Vec<Coordinate>) -> Result<Self, Error> {
+    pub fn new(engine: Rc<RefCell<Engine>>, coordinates: Vec<Coordinate>) -> Result<Self, Error> {
         if coordinates.len() == 0 {
-            return Err(Error::new(ErrorKind::InexistentSprite, "Not enough coordinates to create a sprite"));
+            return Err(Error::new(
+                ErrorKind::InexistentSprite,
+                "Not enough coordinates to create a sprite",
+            ));
         }
         let mut coordinates = coordinates;
         _sort_coordinates(&mut coordinates);
@@ -40,10 +41,17 @@ impl Sprite {
             let eng = engine.borrow();
             // checking that all coordinates
             // fit within the engine boundaries
-            if !coordinates.iter().all(|coor| {
-                coor.0 >= 0 && coor.1 < eng.length
-            }) {
-                return Err(Error::new(ErrorKind::OutOfBounds, format!("Coordinates do not fit within ({}, {})", eng.width, eng.length)));
+            if !coordinates
+                .iter()
+                .all(|coor| coor.0 >= 0 && coor.1 < eng.length)
+            {
+                return Err(Error::new(
+                    ErrorKind::OutOfBounds,
+                    format!(
+                        "Coordinates do not fit within ({}, {})",
+                        eng.width, eng.length
+                    ),
+                ));
             }
         }
         let c = &coordinates[0];
@@ -73,10 +81,10 @@ impl Sprite {
             far_right,
             far_left,
             far_top,
-            far_bottom
+            far_bottom,
         })
     }
-    
+
     pub fn spawn(&mut self) {
         let mut engine = self.engine.borrow_mut();
         spawn_sprite(&mut engine, &mut self.coordinates);
@@ -88,11 +96,17 @@ impl Sprite {
         {
             // checking that the sprite stays within the engine's boundaries
             if self.far_top as isize - 1 < 0 {
-                return Err(Error::new(ErrorKind::OutOfBounds, format!("Y value does not fit within the engine boundaries;
+                return Err(Error::new(
+                    ErrorKind::OutOfBounds,
+                    format!(
+                        "Y value does not fit within the engine boundaries;
 
 Far Top Y-Value: {}
 
-Engine's Dimensions: ({}, {})", self.far_top, engine.width, engine.length)));
+Engine's Dimensions: ({}, {})",
+                        self.far_top, engine.width, engine.length
+                    ),
+                ));
             }
         }
         move_sprite_down(&mut engine, &mut self.coordinates);
@@ -106,11 +120,17 @@ Engine's Dimensions: ({}, {})", self.far_top, engine.width, engine.length)));
         let mut engine = self.engine.borrow_mut();
         {
             if self.far_left as isize - 1 < 0 {
-                return Err(Error::new(ErrorKind::OutOfBounds, format!("Y value does not fit within the engine boundaries;
+                return Err(Error::new(
+                    ErrorKind::OutOfBounds,
+                    format!(
+                        "Y value does not fit within the engine boundaries;
 
 Far Left X-Value: {:?}
 
-Engine's Dimensions: ({}, {})", self.far_left, engine.width, engine.length)));
+Engine's Dimensions: ({}, {})",
+                        self.far_left, engine.width, engine.length
+                    ),
+                ));
             }
         }
         {
@@ -127,11 +147,17 @@ Engine's Dimensions: ({}, {})", self.far_left, engine.width, engine.length)));
         let mut engine = self.engine.borrow_mut();
         {
             if self.far_right + 1 >= engine.width {
-                return Err(Error::new(ErrorKind::OutOfBounds, format!("Y value does not fit within the engine boundaries;
+                return Err(Error::new(
+                    ErrorKind::OutOfBounds,
+                    format!(
+                        "Y value does not fit within the engine boundaries;
 
 Far Right X-Value: {:?}
 
-Engine's Dimensions: ({}, {})", self.far_right, engine.width, engine.length)));
+Engine's Dimensions: ({}, {})",
+                        self.far_right, engine.width, engine.length
+                    ),
+                ));
             }
         }
         {
@@ -149,11 +175,17 @@ Engine's Dimensions: ({}, {})", self.far_right, engine.width, engine.length)));
         let mut engine = self.engine.borrow_mut();
         {
             if self.far_bottom + 1 >= engine.length {
-                return Err(Error::new(ErrorKind::OutOfBounds, format!("Y value does not fit within the engine boundaries;
+                return Err(Error::new(
+                    ErrorKind::OutOfBounds,
+                    format!(
+                        "Y value does not fit within the engine boundaries;
 
 Referenced Coordinate: {:?}
 
-Engine's Dimensions: ({}, {})", self.far_bottom, engine.width, engine.length)));
+Engine's Dimensions: ({}, {})",
+                        self.far_bottom, engine.width, engine.length
+                    ),
+                ));
             }
         }
         {
@@ -165,8 +197,6 @@ Engine's Dimensions: ({}, {})", self.far_bottom, engine.width, engine.length)));
         Ok(())
     }
 }
-
-
 
 pub fn spawn_sprite(engine: &mut Engine, sprite: &[Coordinate]) {
     for coordinate in sprite {
@@ -207,5 +237,3 @@ pub fn move_sprite_down(engine: &mut Engine, sprite: &mut [Coordinate]) {
         *coor = new;
     }
 }
-
-

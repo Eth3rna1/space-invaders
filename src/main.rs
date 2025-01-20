@@ -3,16 +3,15 @@
 */
 mod constants;
 mod engine;
-mod math;
 mod render;
 mod tool;
 //mod tests;
 mod errors;
 
 use crossterm::terminal; // contains the size() function to measure terminal
-use engine::{Engine, sprite, Coordinate};
-use std::rc::Rc;
+use engine::{sprite, Coordinate, Engine};
 use std::cell::RefCell;
+use std::rc::Rc;
 
 fn output_buffers(renderer: &mut render::Render) {
     tool::clear();
@@ -26,19 +25,14 @@ fn output_buffers(renderer: &mut render::Render) {
 fn main() -> Result<(), errors::Error> {
     let mut renderer = render::Render::new();
     let engine = Engine::new((100, 20)).as_rc();
-    let mut sprite1 = sprite::Sprite::new(engine.clone(), vec![
-        (0, 0),
-        (0, 1),
-        (1, 0),
-        (1, 1)
-    ])?;
+    let mut sprite1 = sprite::Sprite::new(engine.clone(), vec![(0, 0), (0, 1), (1, 0), (1, 1)])?;
     let sprite2_coordinates: Vec<Coordinate> = {
         let eng = engine.borrow();
         let sprite2_coordinates = vec![
             (eng.width - 1, 0),
             (eng.width - 1, 1),
             (eng.width - 2, 0),
-            (eng.width - 2, 1)
+            (eng.width - 2, 1),
         ];
         sprite2_coordinates
     };
@@ -61,4 +55,3 @@ fn main() -> Result<(), errors::Error> {
     output_buffers(&mut renderer);
     Ok(())
 }
-

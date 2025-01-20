@@ -35,6 +35,7 @@ fn _index(arr: &[usize], item: &usize) -> Option<usize> {
     None
 }
 
+/*
 pub(crate) fn max_to_min(arr: &[usize]) -> Option<Vec<usize>> {
     if arr.is_empty() {
         return None;
@@ -48,3 +49,4 @@ pub(crate) fn max_to_min(arr: &[usize]) -> Option<Vec<usize>> {
     }
     Some(new_arr)
 }
+*/

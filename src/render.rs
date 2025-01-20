@@ -4,13 +4,16 @@
 
 #[derive(Debug, Clone)]
 pub struct Render {
-    pub frame_count : usize,
-    frames: Vec<String>
+    pub frame_count: usize,
+    frames: Vec<String>,
 }
 
 impl Render {
     pub fn new() -> Self {
-        Self { frames: Vec::new(), frame_count : 0 }
+        Self {
+            frames: Vec::new(),
+            frame_count: 0,
+        }
     }
 
     pub fn push(&mut self, frame: String) {
