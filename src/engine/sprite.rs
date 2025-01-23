@@ -17,24 +17,101 @@ fn _sort_coordinates(coordinates: &mut [Coordinate]) {
     });
 }
 
+/// State of the sprite after a method has been called
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum State {
+    Collided,
+    Destroyed,
+    Spawned,
+    Moved
+}
+
+/// A group of pixels
 #[derive(Debug, Clone)]
 pub struct Sprite {
     engine: Rc<RefCell<Engine>>,
     coordinates: Vec<Coordinate>,
-    far_right: usize,
-    far_left: usize,
-    far_top: usize,
-    far_bottom: usize,
+    far_top: Coordinate,
+    far_left: Coordinate,
+    far_right: Coordinate,
+    far_bottom: Coordinate,
+    far_top_coordinates : Vec<Coordinate>,
+    far_left_coordinates : Vec<Coordinate>,
+    far_right_coordinates : Vec<Coordinate>,
+    far_bottom_coordinates : Vec<Coordinate>,
 }
+
+/* /// THIS CODE IS GOING TO BE IMPLEMENTED LATER IN THE NEW FUNCTION
+fn update_boundaries(&mut self) {
+    let mut far_top = self.coordinates[0];
+    let mut far_bottom = self.coordinates[0];
+    let mut far_left = self.coordinates[0];
+    let mut far_right = self.coordinates[0];
+
+    let mut far_top_coordinates = vec![];
+    let mut far_bottom_coordinates = vec![];
+    let mut far_left_coordinates = vec![];
+    let mut far_right_coordinates = vec![];
+
+    for &coor in &self.coordinates {
+        // Update bounds
+        if coor.1 < far_top.1 {
+            far_top = coor;
+            far_top_coordinates.clear();
+        }
+        if coor.1 == far_top.1 {
+            far_top_coordinates.push(coor);
+        }
+
+        if coor.1 > far_bottom.1 {
+            far_bottom = coor;
+            far_bottom_coordinates.clear();
+        }
+        if coor.1 == far_bottom.1 {
+          
+        }
+
+        if coor.0 < far_left.0 {
+            far_left = coor;
+            far_left_coordinates.clear();
+        }
+        if coor.0 == far_left.0 {
+            far_left_coordinates.push(coor);
+        }
+
+        if coor.0 > far_right.0 {
+            far_right = coor;
+            far_right_coordinates.clear();
+        }
+        if coor.0 == far_right.0 {
+            far_right_coordinates.push(coor);
+        }
+    }
+
+    // Assign new values
+    self.far_top = far_top;
+    self.far_bottom = far_bottom;
+    self.far_left = far_left;
+    self.far_right = far_right;
+    self.far_top_coordinates = far_top_coordinates;
+    self.far_bottom_coordinates = far_bottom_coordinates;
+    self.far_left_coordinates = far_left_coordinates;
+    self.far_right_coordinates = far_right_coordinates;
+} */
 
 impl Sprite {
     pub fn new(engine: Rc<RefCell<Engine>>, coordinates: Vec<Coordinate>) -> Result<Self, Error> {
-        if coordinates.len() == 0 {
+        if coordinates.is_empty() {
             return Err(Error::new(
                 ErrorKind::InexistentSprite,
                 "Not enough coordinates to create a sprite",
             ));
         }
+        let __eng = engine.borrow();
+        if coordinates.iter().any(|coor| __eng.is_on(*coor)) {
+            return Err(Error::new(ErrorKind::OverlappingSprite, "A sprite already exists within given coordinates"));
+        }
+        drop(__eng);
         let mut coordinates = coordinates;
         _sort_coordinates(&mut coordinates);
         {
@@ -43,7 +120,7 @@ impl Sprite {
             // fit within the engine boundaries
             if !coordinates
                 .iter()
-                .all(|coor| coor.0 >= 0 && coor.1 < eng.length)
+                .all(|coor| coor.0 < eng.width && coor.1 < eng.length)
             {
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
@@ -54,49 +131,68 @@ impl Sprite {
                 ));
             }
         }
-        let c = &coordinates[0];
-        let far_top: usize = c.1;
-        let far_left: usize = c.0;
-        let mut far_right: usize = c.0;
-        let mut far_bottom: usize = c.1;
-        match coordinates.len() {
-            //0 => already got covered in the first assertion
-            1 => {} // already got covered
-            _ => {
-                // far_left and far_top already got covered so no need to reassign
-                for i in 1..coordinates.len() {
-                    let c = &coordinates[i];
-                    if c.0 > far_right {
-                        far_right = c.0;
-                    }
-                    if c.1 > far_bottom {
-                        far_bottom = c.1;
-                    }
-                }
+        //let c = coordinates[0];
+        let far_top: Coordinate = *coordinates.iter().min_by_key(|coor| coor.1).unwrap();
+        let far_left: Coordinate = *coordinates.iter().min_by_key(|coor| coor.0).unwrap();
+        let far_right: Coordinate = *coordinates.iter().max_by_key(|coor| coor.0).unwrap();
+        let far_bottom: Coordinate = *coordinates.iter().max_by_key(|coor| coor.1).unwrap();
+        let far_top_coordinates: Vec<Coordinate> = coordinates.iter().filter(|coor| coor.1 == far_top.1).cloned().collect();
+        let far_left_coordinates: Vec<Coordinate> = coordinates.iter().filter(|coor| coor.0 == far_left.0).cloned().collect();
+        let far_right_coordinates: Vec<Coordinate> = coordinates.iter().filter(|coor| coor.0 == far_right.0).cloned().collect();
+        let far_bottom_coordinates: Vec<Coordinate> = coordinates.iter().filter(|coor| coor.1 == far_bottom.1).cloned().collect();
+        /*
+        for coor in coordinates.iter() {
+            let (x, far_left_x, far_right_x) = (coor.0, far_left.0, far_right.0);
+            let (y, far_top_y, far_bottom_y) = (coor.1, far_top.1, far_bottom.1);
+            match x {
+                far_left_x => far_left_coordinates.push(*coor),
+                far_right_x => far_right_coordinates.push(*coor)
             }
+            match y {
+                far_top_y => far_top_coordinates.push(*coor),
+                far_bottom_y => far_bottom_coordinates.push(*coor)
+            }
+            /*
+            match coor.0 { // getting all the coordinates within the extreme sides
+                far_right.0 => far_right_coordinates.push(*coor),
+                far_left.0 => far_left_coordinates.push(*coor)
+            }
+            match coor.1 {
+                far_top.1 => far_top_coordinates.push(*coor),
+                far_bottom.1 => far_bottom_coordinates.push(*coor)
+            }
+            */
         }
+        */
         Ok(Self {
             engine,
             coordinates,
-            far_right,
-            far_left,
             far_top,
+            far_left,
+            far_right,
             far_bottom,
+            far_top_coordinates,
+            far_left_coordinates,
+            far_right_coordinates,
+            far_bottom_coordinates,
         })
     }
 
-    pub fn spawn(&mut self) {
+    pub fn spawn(&mut self) -> State {
         let mut engine = self.engine.borrow_mut();
         {
             spawn_sprite(&mut engine, &mut self.coordinates);
         }
+        State::Spawned
     }
 
-    pub fn move_up(&mut self) -> Result<(), Error> {
+    pub fn move_up(&mut self) -> Result<State, Error> {
         let mut engine = self.engine.borrow_mut();
         {
             // checking that the sprite stays within the engine's boundaries
-            if self.far_top as isize - 1 < 0 {
+            //if self.far_top.1 as isize - 1 < 0 {
+            // no need to convert to a signed integer
+            if self.far_top.1 == 0 {
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
                     format!(
@@ -105,24 +201,36 @@ impl Sprite {
 Far Top Y-Value: {}
 
 Engine's Dimensions: ({}, {})",
-                        self.far_top, engine.width, engine.length
+                        self.far_top.1, engine.width, engine.length
                     ),
                 ));
             }
         }
         {
-            move_sprite_down(&mut engine, &mut self.coordinates);
+            // checking for collisions
+            if self.far_top_coordinates.iter().any(|coor| {
+                let upcoming_coor: Coordinate = (coor.0, coor.1 - 1);
+                engine.is_on(upcoming_coor)
+            }) && engine.collisions {
+                return Ok(State::Collided);
+            }
         }
-        self.far_top -= 1;
-        self.far_bottom -= 1;
-        Ok(())
+        {
+            move_sprite_up(&mut engine, &mut self.coordinates);
+        }
+        self.far_top.1 -= 1;
+        self.far_bottom.1 -= 1;
+        self.far_top_coordinates = self.far_top_coordinates.iter().map(|coor| (coor.0, coor.1 - 1)).collect();
+        Ok(State::Moved)
     }
 
-    pub fn move_left(&mut self) -> Result<(), Error> {
+    pub fn move_left(&mut self) -> Result<State, Error> {
         let mut engine = self.engine.borrow_mut();
         {
             // error case
-            if self.far_left as isize - 1 < 0 {
+            //if self.far_left.0 as isize - 1 < 0 {
+            // no need to convert to a signed integer
+            if self.far_left.0 == 0 {
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
                     format!(
@@ -131,25 +239,35 @@ Engine's Dimensions: ({}, {})",
 Far Left X-Value: {:?}
 
 Engine's Dimensions: ({}, {})",
-                        self.far_left, engine.width, engine.length
+                        self.far_left.0, engine.width, engine.length
                     ),
                 ));
             }
         }
         {
+            // checking for collisions
+            if self.far_top_coordinates.iter().any(|coor| {
+                let upcoming_coor: Coordinate = (coor.0 - 1, coor.1);
+                engine.is_on(upcoming_coor)
+            }) && engine.collisions {
+                return Ok(State::Collided)
+            }
+        }
+        {
             move_sprite_left(&mut engine, &mut self.coordinates);
         }
-        self.far_left -= 1;
-        self.far_right -= 1;
-        Ok(())
+        self.far_left.0 -= 1;
+        self.far_right.0 -= 1;
+        self.far_left_coordinates = self.far_left_coordinates.iter().map(|coor| (coor.0 - 1, coor.1)).collect();
+        Ok(State::Moved)
     }
 
-    pub fn move_right(&mut self) -> Result<(), Error> {
+    pub fn move_right(&mut self) -> Result<State, Error> {
         // reminder that the array gets reversed
         let mut engine = self.engine.borrow_mut();
         {
             // error case
-            if self.far_right + 1 >= engine.width {
+            if self.far_right.0 + 1 >= engine.width {
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
                     format!(
@@ -158,26 +276,36 @@ Engine's Dimensions: ({}, {})",
 Far Right X-Value: {:?}
 
 Engine's Dimensions: ({}, {})",
-                        self.far_right, engine.width, engine.length
+                        self.far_right.0, engine.width, engine.length
                     ),
                 ));
             }
         }
         {
+            // checking for collisions
+            if self.far_top_coordinates.iter().any(|coor| {
+                let upcoming_coor: Coordinate = (coor.0 + 1, coor.1);
+                engine.is_on(upcoming_coor)
+            }) && engine.collisions {
+                return Ok(State::Collided)
+            }
+        }
+        {
             move_sprite_right(&mut engine, &mut self.coordinates);
         }
-        self.far_right += 1;
-        self.far_left += 1;
-        Ok(())
+        self.far_right.0 += 1;
+        self.far_left.0 += 1;
+        self.far_right_coordinates = self.far_right_coordinates.iter().map(|coor| (coor.0 + 1, coor.1)).collect();
+        Ok(State::Moved)
     }
 
-    pub fn move_down(&mut self) -> Result<(), Error> {
+    pub fn move_down(&mut self) -> Result<State, Error> {
         // reminder that array gets reversed
         // assert the first element
         let mut engine = self.engine.borrow_mut();
         {
             // error case
-            if self.far_bottom + 1 >= engine.length {
+            if self.far_bottom.1 + 1 >= engine.length {
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
                     format!(
@@ -186,17 +314,35 @@ Engine's Dimensions: ({}, {})",
 Referenced Coordinate: {:?}
 
 Engine's Dimensions: ({}, {})",
-                        self.far_bottom, engine.width, engine.length
+                        self.far_bottom.1, engine.width, engine.length
                     ),
                 ));
             }
         }
         {
+            // checking for collisions
+            if self.far_top_coordinates.iter().any(|coor| {
+                let upcoming_coor: Coordinate = (coor.0, coor.1 + 1);
+                engine.is_on(upcoming_coor)
+            }) && engine.collisions {
+                return Ok(State::Collided)
+            }
+        }
+        {
             move_sprite_down(&mut engine, &mut self.coordinates);
         }
-        self.far_bottom += 1;
-        self.far_top += 1;
-        Ok(())
+        self.far_bottom.1 += 1;
+        self.far_top.1 += 1;
+        self.far_bottom_coordinates = self.far_bottom_coordinates.iter().map(|coor| (coor.0, coor.1 + 1)).collect();
+        Ok(State::Moved)
+    }
+
+    pub fn destroy(&mut self) -> State {
+        let mut engine = self.engine.borrow_mut();
+        for coor in self.coordinates.iter() {
+            engine.reset(*coor);
+        }
+        State::Destroyed
     }
 }
 
@@ -208,7 +354,7 @@ pub fn spawn_sprite(engine: &mut Engine, sprite: &[Coordinate]) {
 
 pub fn move_sprite_right(engine: &mut Engine, sprite: &mut [Coordinate]) {
     // reversed the array
-    for coor in sprite.into_iter().rev() {
+    for coor in sprite.iter_mut().rev() {
         let new = (coor.0 + 1, coor.1);
         engine.swap(*coor, new);
         *coor = new;
@@ -233,7 +379,7 @@ pub fn move_sprite_up(engine: &mut Engine, sprite: &mut [Coordinate]) {
 
 pub fn move_sprite_down(engine: &mut Engine, sprite: &mut [Coordinate]) {
     // reversed the array
-    for coor in sprite.into_iter().rev() {
+    for coor in sprite.iter_mut().rev() {
         let new = (coor.0, coor.1 + 1);
         engine.swap(*coor, new);
         *coor = new;

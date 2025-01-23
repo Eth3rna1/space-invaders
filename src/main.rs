@@ -13,11 +13,11 @@ use engine::{sprite, Coordinate, Engine};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-fn output_buffers(renderer: &mut render::Render) {
+fn output_buffers(renderer: &mut render::Render, intervals : f64) {
     tool::clear();
     while let Some(frame) = renderer.swap() {
         print!("{}", frame);
-        tool::sleep(0.5);
+        tool::sleep(intervals);
         tool::refresh();
     }
 }
@@ -25,33 +25,62 @@ fn output_buffers(renderer: &mut render::Render) {
 fn main() -> Result<(), errors::Error> {
     let mut renderer = render::Render::new();
     let engine = Engine::new((100, 20)).as_rc();
-    let mut sprite1 = sprite::Sprite::new(engine.clone(), vec![(0, 0), (0, 1), (1, 0), (1, 1)])?;
-    let sprite2_coordinates: Vec<Coordinate> = {
+    let alien_points: Vec<Coordinate> = {
+        // putting the alien on top of the screen
         let eng = engine.borrow();
-        let sprite2_coordinates = vec![
-            (eng.width - 1, 0),
-            (eng.width - 1, 1),
-            (eng.width - 2, 0),
-            (eng.width - 2, 1),
+        let points: Vec<Coordinate> = vec![
+            (eng.width / 2 - 1, eng.length / 8),
+            (eng.width / 2, eng.length / 8),
+            (eng.width / 2 + 1, eng.length / 8),
+            (eng.width / 2 - 1, eng.length / 8 + 1),
+            (eng.width / 2, eng.length / 8 + 1),
+            (eng.width / 2 + 1, eng.length / 8 + 1),
         ];
-        sprite2_coordinates
+        points
     };
-    let mut sprite2 = sprite::Sprite::new(engine.clone(), sprite2_coordinates)?;
-    sprite1.spawn();
-    sprite2.spawn();
+    let mut alien = sprite::Sprite::new(engine.clone(), alien_points)?;
+    alien.spawn();
+    let shooter_points: Vec<Coordinate> = {
+        let eng = engine.borrow();
+        let points: Vec<Coordinate> = vec![
+            (eng.width / 2 - 1, eng.length - (eng.length / 8)),
+            (eng.width / 2, eng.length - (eng.length / 8)),
+            (eng.width / 2 + 1, eng.length - (eng.length / 8)),
+        ];
+        points
+    };
+    let mut shooter = sprite::Sprite::new(engine.clone(), shooter_points)?;
+    shooter.spawn();
     renderer.push(engine.borrow().output());
-    sprite1.move_down()?;
+    let mut bullet: sprite::Sprite = {
+        let eng = engine.borrow();
+        let starting_point = vec![
+            (eng.width / 2, eng.length - (eng.length / 8) - 1),
+        ];
+        drop(eng);
+        sprite::Sprite::new(engine.clone(), starting_point)?
+    };
+    bullet.spawn();
+    bullet.move_up()?;
+    shooter.spawn();
     renderer.push(engine.borrow().output());
-    sprite1.move_down()?;
-    renderer.push(engine.borrow().output());
-    sprite2.move_down()?;
-    renderer.push(engine.borrow().output());
-    sprite1.move_right()?;
-    renderer.push(engine.borrow().output());
-    sprite2.move_down()?;
-    renderer.push(engine.borrow().output());
-    sprite2.move_left()?;
-    renderer.push(engine.borrow().output());
-    output_buffers(&mut renderer);
+    'main_loop: loop {
+        match bullet.move_up() {
+            Ok(action) => {
+                if action == sprite::State::Collided {
+                    bullet.destroy();
+                    alien.destroy();
+                    renderer.push(engine.borrow().output());
+                    break 'main_loop;
+                }
+            }
+            Err(msg) => {
+                eprintln!("{}", msg);
+                break 'main_loop;
+            }
+        }
+        renderer.push(engine.borrow().output());
+    }
+    output_buffers(&mut renderer, 0.05);
     Ok(())
 }
