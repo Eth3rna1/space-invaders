@@ -13,7 +13,7 @@ use engine::{sprite, Coordinate, Engine};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-fn output_buffers(renderer: &mut render::Render, intervals : f64) {
+fn output_buffers(renderer: &mut render::Render, intervals: f64) {
     tool::clear();
     while let Some(frame) = renderer.swap() {
         print!("{}", frame);
@@ -54,9 +54,7 @@ fn main() -> Result<(), errors::Error> {
     renderer.push(engine.borrow().output());
     let mut bullet: sprite::Sprite = {
         let eng = engine.borrow();
-        let starting_point = vec![
-            (eng.width / 2, eng.length - (eng.length / 8) - 1),
-        ];
+        let starting_point = vec![(eng.width / 2, eng.length - (eng.length / 8) - 1)];
         drop(eng);
         sprite::Sprite::new(engine.clone(), starting_point)?
     };

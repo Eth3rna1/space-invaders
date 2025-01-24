@@ -22,20 +22,24 @@ pub struct Engine {
     pub length: usize,
     pub width: usize,
     matrix: Vec<Vec<PixelState>>,
-    pub collisions : bool,
+    pub collisions: bool,
 }
 
 impl Engine {
     pub fn new(dimensions: (usize, usize)) -> Self {
         let (width, length) = dimensions;
-        let mut matrix: Vec<Vec<PixelState>> = Vec::new();
-        (0..length)
-            .for_each(|_| matrix.push((0..width).map(|_| PixelState::Off).collect::<Vec<PixelState>>()));
+        let matrix: Vec<Vec<PixelState>> = (0..length)
+            .map(|_| {
+                (0..width)
+                    .map(|_| PixelState::Off)
+                    .collect::<Vec<PixelState>>()
+            })
+            .collect();
         Self {
             length,
             width,
             matrix,
-            collisions : true,
+            collisions: true,
         }
     }
 
@@ -81,10 +85,12 @@ impl Engine {
     }
 
     pub fn clear(&mut self) {
-        for y in 0..self.length {
-            for x in 0..self.length {
-                self.matrix[y][x] = PixelState::Off;
-            }
-        }
+        self.matrix = (0..self.length)
+            .map(|_| {
+                (0..self.width)
+                    .map(|_| PixelState::Off)
+                    .collect::<Vec<PixelState>>()
+            })
+            .collect();
     }
 }

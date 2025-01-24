@@ -23,7 +23,7 @@ pub enum State {
     Collided,
     Destroyed,
     Spawned,
-    Moved
+    Moved,
 }
 
 /// A group of pixels
@@ -35,10 +35,10 @@ pub struct Sprite {
     far_left: Coordinate,
     far_right: Coordinate,
     far_bottom: Coordinate,
-    far_top_coordinates : Vec<Coordinate>,
-    far_left_coordinates : Vec<Coordinate>,
-    far_right_coordinates : Vec<Coordinate>,
-    far_bottom_coordinates : Vec<Coordinate>,
+    far_top_coordinates: Vec<Coordinate>,
+    far_left_coordinates: Vec<Coordinate>,
+    far_right_coordinates: Vec<Coordinate>,
+    far_bottom_coordinates: Vec<Coordinate>,
 }
 
 /* /// THIS CODE IS GOING TO BE IMPLEMENTED LATER IN THE NEW FUNCTION
@@ -68,7 +68,7 @@ fn update_boundaries(&mut self) {
             far_bottom_coordinates.clear();
         }
         if coor.1 == far_bottom.1 {
-          
+
         }
 
         if coor.0 < far_left.0 {
@@ -109,7 +109,10 @@ impl Sprite {
         }
         let __eng = engine.borrow();
         if coordinates.iter().any(|coor| __eng.is_on(*coor)) {
-            return Err(Error::new(ErrorKind::OverlappingSprite, "A sprite already exists within given coordinates"));
+            return Err(Error::new(
+                ErrorKind::OverlappingSprite,
+                "A sprite already exists within given coordinates",
+            ));
         }
         drop(__eng);
         let mut coordinates = coordinates;
@@ -136,34 +139,26 @@ impl Sprite {
         let far_left: Coordinate = *coordinates.iter().min_by_key(|coor| coor.0).unwrap();
         let far_right: Coordinate = *coordinates.iter().max_by_key(|coor| coor.0).unwrap();
         let far_bottom: Coordinate = *coordinates.iter().max_by_key(|coor| coor.1).unwrap();
-        let far_top_coordinates: Vec<Coordinate> = coordinates.iter().filter(|coor| coor.1 == far_top.1).cloned().collect();
-        let far_left_coordinates: Vec<Coordinate> = coordinates.iter().filter(|coor| coor.0 == far_left.0).cloned().collect();
-        let far_right_coordinates: Vec<Coordinate> = coordinates.iter().filter(|coor| coor.0 == far_right.0).cloned().collect();
-        let far_bottom_coordinates: Vec<Coordinate> = coordinates.iter().filter(|coor| coor.1 == far_bottom.1).cloned().collect();
-        /*
-        for coor in coordinates.iter() {
-            let (x, far_left_x, far_right_x) = (coor.0, far_left.0, far_right.0);
-            let (y, far_top_y, far_bottom_y) = (coor.1, far_top.1, far_bottom.1);
-            match x {
-                far_left_x => far_left_coordinates.push(*coor),
-                far_right_x => far_right_coordinates.push(*coor)
-            }
-            match y {
-                far_top_y => far_top_coordinates.push(*coor),
-                far_bottom_y => far_bottom_coordinates.push(*coor)
-            }
-            /*
-            match coor.0 { // getting all the coordinates within the extreme sides
-                far_right.0 => far_right_coordinates.push(*coor),
-                far_left.0 => far_left_coordinates.push(*coor)
-            }
-            match coor.1 {
-                far_top.1 => far_top_coordinates.push(*coor),
-                far_bottom.1 => far_bottom_coordinates.push(*coor)
-            }
-            */
-        }
-        */
+        let far_top_coordinates: Vec<Coordinate> = coordinates
+            .iter()
+            .filter(|coor| coor.1 == far_top.1)
+            .cloned()
+            .collect();
+        let far_left_coordinates: Vec<Coordinate> = coordinates
+            .iter()
+            .filter(|coor| coor.0 == far_left.0)
+            .cloned()
+            .collect();
+        let far_right_coordinates: Vec<Coordinate> = coordinates
+            .iter()
+            .filter(|coor| coor.0 == far_right.0)
+            .cloned()
+            .collect();
+        let far_bottom_coordinates: Vec<Coordinate> = coordinates
+            .iter()
+            .filter(|coor| coor.1 == far_bottom.1)
+            .cloned()
+            .collect();
         Ok(Self {
             engine,
             coordinates,
@@ -211,7 +206,8 @@ Engine's Dimensions: ({}, {})",
             if self.far_top_coordinates.iter().any(|coor| {
                 let upcoming_coor: Coordinate = (coor.0, coor.1 - 1);
                 engine.is_on(upcoming_coor)
-            }) && engine.collisions {
+            }) && engine.collisions
+            {
                 return Ok(State::Collided);
             }
         }
@@ -220,7 +216,11 @@ Engine's Dimensions: ({}, {})",
         }
         self.far_top.1 -= 1;
         self.far_bottom.1 -= 1;
-        self.far_top_coordinates = self.far_top_coordinates.iter().map(|coor| (coor.0, coor.1 - 1)).collect();
+        self.far_top_coordinates = self
+            .far_top_coordinates
+            .iter()
+            .map(|coor| (coor.0, coor.1 - 1))
+            .collect();
         Ok(State::Moved)
     }
 
@@ -249,8 +249,9 @@ Engine's Dimensions: ({}, {})",
             if self.far_top_coordinates.iter().any(|coor| {
                 let upcoming_coor: Coordinate = (coor.0 - 1, coor.1);
                 engine.is_on(upcoming_coor)
-            }) && engine.collisions {
-                return Ok(State::Collided)
+            }) && engine.collisions
+            {
+                return Ok(State::Collided);
             }
         }
         {
@@ -258,7 +259,11 @@ Engine's Dimensions: ({}, {})",
         }
         self.far_left.0 -= 1;
         self.far_right.0 -= 1;
-        self.far_left_coordinates = self.far_left_coordinates.iter().map(|coor| (coor.0 - 1, coor.1)).collect();
+        self.far_left_coordinates = self
+            .far_left_coordinates
+            .iter()
+            .map(|coor| (coor.0 - 1, coor.1))
+            .collect();
         Ok(State::Moved)
     }
 
@@ -286,8 +291,9 @@ Engine's Dimensions: ({}, {})",
             if self.far_top_coordinates.iter().any(|coor| {
                 let upcoming_coor: Coordinate = (coor.0 + 1, coor.1);
                 engine.is_on(upcoming_coor)
-            }) && engine.collisions {
-                return Ok(State::Collided)
+            }) && engine.collisions
+            {
+                return Ok(State::Collided);
             }
         }
         {
@@ -295,7 +301,11 @@ Engine's Dimensions: ({}, {})",
         }
         self.far_right.0 += 1;
         self.far_left.0 += 1;
-        self.far_right_coordinates = self.far_right_coordinates.iter().map(|coor| (coor.0 + 1, coor.1)).collect();
+        self.far_right_coordinates = self
+            .far_right_coordinates
+            .iter()
+            .map(|coor| (coor.0 + 1, coor.1))
+            .collect();
         Ok(State::Moved)
     }
 
@@ -324,8 +334,9 @@ Engine's Dimensions: ({}, {})",
             if self.far_top_coordinates.iter().any(|coor| {
                 let upcoming_coor: Coordinate = (coor.0, coor.1 + 1);
                 engine.is_on(upcoming_coor)
-            }) && engine.collisions {
-                return Ok(State::Collided)
+            }) && engine.collisions
+            {
+                return Ok(State::Collided);
             }
         }
         {
@@ -333,7 +344,11 @@ Engine's Dimensions: ({}, {})",
         }
         self.far_bottom.1 += 1;
         self.far_top.1 += 1;
-        self.far_bottom_coordinates = self.far_bottom_coordinates.iter().map(|coor| (coor.0, coor.1 + 1)).collect();
+        self.far_bottom_coordinates = self
+            .far_bottom_coordinates
+            .iter()
+            .map(|coor| (coor.0, coor.1 + 1))
+            .collect();
         Ok(State::Moved)
     }
 
