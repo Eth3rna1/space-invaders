@@ -232,11 +232,9 @@ Engine's Dimensions: ({}, {})",
         }
         self.far_top.1 -= 1;
         self.far_bottom.1 -= 1;
-        self.far_top_coordinates = self
-            .far_top_coordinates
-            .iter()
-            .map(|coor| (coor.0, coor.1 - 1))
-            .collect();
+        for coor in &mut self.far_top_coordinates {
+            coor.1 -= 1;
+        }
         Ok(State::Moved)
     }
 
@@ -275,11 +273,9 @@ Engine's Dimensions: ({}, {})",
         }
         self.far_left.0 -= 1;
         self.far_right.0 -= 1;
-        self.far_left_coordinates = self
-            .far_left_coordinates
-            .iter()
-            .map(|coor| (coor.0 - 1, coor.1))
-            .collect();
+        for coor in &mut self.far_left_coordinates {
+            coor.0 -= 1;
+        }
         Ok(State::Moved)
     }
 
@@ -317,11 +313,9 @@ Engine's Dimensions: ({}, {})",
         }
         self.far_right.0 += 1;
         self.far_left.0 += 1;
-        self.far_right_coordinates = self
-            .far_right_coordinates
-            .iter()
-            .map(|coor| (coor.0 + 1, coor.1))
-            .collect();
+        for coor in &mut self.far_right_coordinates {
+            coor.0 += 1;
+        }
         Ok(State::Moved)
     }
 
@@ -360,11 +354,9 @@ Engine's Dimensions: ({}, {})",
         }
         self.far_bottom.1 += 1;
         self.far_top.1 += 1;
-        self.far_bottom_coordinates = self
-            .far_bottom_coordinates
-            .iter()
-            .map(|coor| (coor.0, coor.1 + 1))
-            .collect();
+        for coor in &mut self.far_bottom_coordinates {
+            coor.1 += 1;
+        }
         Ok(State::Moved)
     }
 
