@@ -3,7 +3,6 @@
     PixelState::On represents a pixel char
 */
 pub mod sprite;
-//pub mod art;
 use crate::constants::{BACKGROUND_CHAR, PIXEL_CHAR};
 
 use std::cell::RefCell;
@@ -22,7 +21,6 @@ pub struct Engine {
     pub length: usize,
     pub width: usize,
     matrix: Vec<Vec<PixelState>>,
-    pub collisions: bool,
 }
 
 impl Engine {
@@ -39,7 +37,6 @@ impl Engine {
             length,
             width,
             matrix,
-            collisions: true,
         }
     }
 

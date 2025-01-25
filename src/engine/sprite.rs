@@ -29,6 +29,7 @@ pub enum State {
 /// A group of pixels
 #[derive(Debug, Clone)]
 pub struct Sprite {
+    collisions: bool,
     engine: Rc<RefCell<Engine>>,
     coordinates: Vec<Coordinate>,
     far_top: Coordinate,
@@ -101,39 +102,39 @@ fn update_boundaries(&mut self) {
 
 impl Sprite {
     pub fn new(engine: Rc<RefCell<Engine>>, coordinates: Vec<Coordinate>) -> Result<Self, Error> {
-        if coordinates.is_empty() {
-            return Err(Error::new(
-                ErrorKind::InexistentSprite,
-                "Not enough coordinates to create a sprite",
-            ));
-        }
-        let __eng = engine.borrow();
-        if coordinates.iter().any(|coor| __eng.is_on(*coor)) {
-            return Err(Error::new(
-                ErrorKind::OverlappingSprite,
-                "A sprite already exists within given coordinates",
-            ));
-        }
-        drop(__eng);
-        let mut coordinates = coordinates;
-        _sort_coordinates(&mut coordinates);
+        let collisions = true;
         {
-            let eng = engine.borrow();
+            //error cases
+            if coordinates.is_empty() {
+                return Err(Error::new(
+                    ErrorKind::InexistentSprite,
+                    "Not enough coordinates to create a sprite",
+                ));
+            }
+            let __eng = engine.borrow();
             // checking that all coordinates
             // fit within the engine boundaries
             if !coordinates
                 .iter()
-                .all(|coor| coor.0 < eng.width && coor.1 < eng.length)
+                .all(|coor| coor.0 < __eng.width && coor.1 < __eng.length)
             {
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
                     format!(
                         "Coordinates do not fit within ({}, {})",
-                        eng.width, eng.length
+                        __eng.width, __eng.length
                     ),
                 ));
             }
+            if coordinates.iter().any(|coor| __eng.is_on(*coor)) {
+                return Err(Error::new(
+                    ErrorKind::OverlappingSprite,
+                    "A sprite already exists within given coordinates",
+                ));
+            }
         }
+        let mut coordinates = coordinates;
+        _sort_coordinates(&mut coordinates);
         //let c = coordinates[0];
         let far_top: Coordinate = *coordinates.iter().min_by_key(|coor| coor.1).unwrap();
         let far_left: Coordinate = *coordinates.iter().min_by_key(|coor| coor.0).unwrap();
@@ -160,6 +161,7 @@ impl Sprite {
             .cloned()
             .collect();
         Ok(Self {
+            collisions,
             engine,
             coordinates,
             far_top,
@@ -171,6 +173,20 @@ impl Sprite {
             far_right_coordinates,
             far_bottom_coordinates,
         })
+    }
+
+    /// Checks for collisions with other pixels whose pixel state is on
+    pub fn set_collisions(mut self, boolean: bool) -> Self {
+        self.collisions = boolean;
+        self
+    }
+
+    pub fn contains(&self, coordinate: Coordinate) -> bool {
+        if self.far_left.0 <= coordinate.0 && coordinate.0 <= self.far_right.0
+        && self.far_top.1 <= coordinate.1 && coordinate.1 <= self.far_bottom.1 {
+            return true
+        }
+        false
     }
 
     pub fn spawn(&mut self) -> State {
@@ -206,7 +222,7 @@ Engine's Dimensions: ({}, {})",
             if self.far_top_coordinates.iter().any(|coor| {
                 let upcoming_coor: Coordinate = (coor.0, coor.1 - 1);
                 engine.is_on(upcoming_coor)
-            }) && engine.collisions
+            }) && self.collisions
             {
                 return Ok(State::Collided);
             }
@@ -249,7 +265,7 @@ Engine's Dimensions: ({}, {})",
             if self.far_top_coordinates.iter().any(|coor| {
                 let upcoming_coor: Coordinate = (coor.0 - 1, coor.1);
                 engine.is_on(upcoming_coor)
-            }) && engine.collisions
+            }) && self.collisions
             {
                 return Ok(State::Collided);
             }
@@ -291,7 +307,7 @@ Engine's Dimensions: ({}, {})",
             if self.far_top_coordinates.iter().any(|coor| {
                 let upcoming_coor: Coordinate = (coor.0 + 1, coor.1);
                 engine.is_on(upcoming_coor)
-            }) && engine.collisions
+            }) && self.collisions
             {
                 return Ok(State::Collided);
             }
@@ -334,7 +350,7 @@ Engine's Dimensions: ({}, {})",
             if self.far_top_coordinates.iter().any(|coor| {
                 let upcoming_coor: Coordinate = (coor.0, coor.1 + 1);
                 engine.is_on(upcoming_coor)
-            }) && engine.collisions
+            }) && self.collisions
             {
                 return Ok(State::Collided);
             }
