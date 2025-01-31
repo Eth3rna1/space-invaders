@@ -1,5 +1,8 @@
 /*
     Remaking the game Space Invaders in ASCII
+
+To-Do:
+    use the signal_hook crate
 */
 mod constants;
 mod engine;
@@ -22,7 +25,7 @@ fn output_buffers(renderer: &mut render::Render, intervals: f64) {
     }
 }
 
-fn main() -> Result<(), errors::Error> {
+fn shooting_alien() -> Result<(), errors::Error> {
     let mut renderer = render::Render::new();
     let engine = Engine::new((100, 20)).as_rc();
     let alien_points: Vec<Coordinate> = {
@@ -80,5 +83,43 @@ fn main() -> Result<(), errors::Error> {
         renderer.push(engine.borrow().output());
     }
     output_buffers(&mut renderer, 0.05);
+    Ok(())
+}
+
+enum Direction {
+    Right,
+    Left,
+}
+
+fn main() -> Result<(), errors::Error> {
+    // simulating the movement of an alien
+    let mut engine = Engine::new((100, 20)).as_rc();
+    let mut renderer = render::Render::new();
+    let mut direction = Direction::Right;
+    let mut alien = sprite::Sprite::new(engine.clone(), vec![(1, 1), (1, 2), (2, 1), (2, 2)])?;
+    alien.spawn();
+    renderer.push(engine.borrow().output());
+    loop {
+        match direction {
+            Direction::Right => {
+                if alien.move_right().is_err() {
+                    if alien.move_down().is_err() {
+                        break;
+                    };
+                    direction = Direction::Left;
+                }
+            }
+            Direction::Left => {
+                if alien.move_left().is_err() {
+                    if alien.move_down().is_err() {
+                        break;
+                    };
+                    direction = Direction::Right;
+                }
+            }
+        }
+        renderer.push(engine.borrow().output());
+    }
+    output_buffers(&mut renderer, 0.01);
     Ok(())
 }

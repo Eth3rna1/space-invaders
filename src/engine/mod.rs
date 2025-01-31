@@ -2,13 +2,50 @@
     PixelState::Off represents a background character
     PixelState::On represents a pixel char
 */
+pub mod bbox;
 pub mod sprite;
 use crate::constants::{BACKGROUND_CHAR, PIXEL_CHAR};
+use bbox::BoundingBox;
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
+pub trait Within {
+    fn within(&self, bbox: &BoundingBox) -> bool;
+
+    fn within_x(&self, bbox: &BoundingBox) -> bool;
+
+    fn within_y(&self, bbox: &BoundingBox) -> bool;
+}
+
 pub type Coordinate = (usize, usize);
+
+impl Within for Coordinate {
+    fn within(&self, bbox: &BoundingBox) -> bool {
+        if bbox.far_left <= self.0
+            && self.0 <= bbox.far_right
+            && bbox.far_top <= self.1
+            && self.1 <= bbox.far_bottom
+        {
+            return true;
+        }
+        false
+    }
+
+    fn within_x(&self, bbox: &BoundingBox) -> bool {
+        if bbox.far_left <= self.0 && self.0 <= bbox.far_right {
+            return true;
+        }
+        false
+    }
+
+    fn within_y(&self, bbox: &BoundingBox) -> bool {
+        if bbox.far_top <= self.1 && self.1 <= bbox.far_bottom {
+            return true;
+        }
+        false
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PixelState {
