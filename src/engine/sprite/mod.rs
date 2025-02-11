@@ -1,3 +1,5 @@
+pub mod actions;
+
 use crate::constants::{BACKGROUND_CHAR, PIXEL_CHAR};
 use crate::engine::bbox::BoundingBox;
 use crate::engine::Coordinate;
@@ -115,6 +117,25 @@ impl Sprite {
         //}
         //false
         coordinate.within(&self.bounding_box)
+    }
+
+    pub fn pop(&mut self, coordinate : Coordinate) -> Result<(), Error> {
+        if !self.contains(coordinate) {
+            return Err(Error::new(ErrorKind::InexistentCoordinate, format!("Cannot pop coordinate because it doesn't exist within `{:?}`, referenced coordinate: {:?}", self as *const Sprite, coordinate)));
+        }
+        let index = {
+            let mut idx = 0;
+            for (i, coor) in self.coordinates.iter().enumerate() {
+                //idx += 1;
+                if *coor == coordinate {
+                    idx = i;
+                    break
+                }
+            }
+            idx
+        };
+        self.coordinates.remove(index);
+        Ok(())
     }
 
     pub fn spawn(&mut self) -> State {

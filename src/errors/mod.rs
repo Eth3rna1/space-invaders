@@ -5,6 +5,7 @@ use std::fmt;
 pub enum ErrorKind {
     OutOfBounds,
     InexistentSprite,
+    InexistentCoordinate,
     OverlappingSprite,
     Other,
 }

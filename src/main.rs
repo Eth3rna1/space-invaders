@@ -7,17 +7,33 @@ To-Do:
 mod constants;
 mod engine;
 mod render;
+mod listener;
 mod tool;
 //mod tests;
 mod errors;
 
 use crossterm::terminal; // contains the size() function to measure terminal
-use engine::{sprite, Coordinate, Engine};
+use errors::Error;
+use render::Renderer;
+use engine::{
+    sprite::{self, Sprite},
+    Coordinate,
+    Engine
+};
+use listener::Action;
+use std::thread;
 use std::cell::RefCell;
+use std::sync::{Arc, RwLock};
 use std::rc::Rc;
 
-fn output_buffers(renderer: &mut render::Render, intervals: f64) {
-    tool::clear();
+pub fn output(engine: &Rc<RefCell<Engine>>, wait: f64) {
+    //tool::clear();
+    println!("{}", engine.borrow().output());
+    tool::sleep(wait);
+    tool::refresh();
+}
+
+fn output_buffers(renderer: &mut Renderer, intervals: f64) {
     while let Some(frame) = renderer.swap() {
         print!("{}", frame);
         tool::sleep(intervals);
@@ -25,101 +41,65 @@ fn output_buffers(renderer: &mut render::Render, intervals: f64) {
     }
 }
 
-fn shooting_alien() -> Result<(), errors::Error> {
-    let mut renderer = render::Render::new();
+fn spawn_alien(engine: Rc<RefCell<Engine>>, position: Vec<Coordinate>) -> Result<Sprite, Error> {
+    let mut sprite = Sprite::new(engine, position)?;
+    sprite.spawn();
+    Ok(sprite)
+}
+
+fn spawn_aliens(engine: Rc<RefCell<Engine>>, count: usize) -> Result<Vec<Sprite>, Error> {
+    let width = { engine.borrow().width };
+    let difference = width / count;
+    let mut aliens = Vec::new();
+    for row in 2..5 {
+        let mut current_x = 0;
+        while current_x + difference < width {
+            aliens.push(spawn_alien(engine.clone(), vec![(current_x, row)])?);
+            current_x += difference;
+        }
+    }
+    Ok(aliens)
+}
+
+fn spawn_shooter(engine: Rc<RefCell<Engine>>) -> Result<Sprite, Error> {
+    let position = {
+        let eng = engine.borrow();
+        vec![
+            (eng.width / 2, eng.length - (eng.length / 7)),
+            (eng.width / 2 + 1, eng.length - (eng.length / 7)),
+            (eng.width / 2 - 1, eng.length - (eng.length / 7)),
+            (eng.width / 2, eng.length - (eng.length / 7 + 1))
+        ]
+    };
+    let mut shooter = Sprite::new(engine, position)?;
+    shooter.spawn();
+    Ok(shooter)
+}
+
+fn main() -> Result<(), Error> {
+    tool::clear();
     let engine = Engine::new((100, 20)).as_rc();
-    let alien_points: Vec<Coordinate> = {
-        // putting the alien on top of the screen
-        let eng = engine.borrow();
-        let points: Vec<Coordinate> = vec![
-            (eng.width / 2 - 1, eng.length / 8),
-            (eng.width / 2, eng.length / 8),
-            (eng.width / 2 + 1, eng.length / 8),
-            (eng.width / 2 - 1, eng.length / 8 + 1),
-            (eng.width / 2, eng.length / 8 + 1),
-            (eng.width / 2 + 1, eng.length / 8 + 1),
-        ];
-        points
-    };
-    let mut alien = sprite::Sprite::new(engine.clone(), alien_points)?;
-    alien.spawn();
-    let shooter_points: Vec<Coordinate> = {
-        let eng = engine.borrow();
-        let points: Vec<Coordinate> = vec![
-            (eng.width / 2 - 1, eng.length - (eng.length / 8)),
-            (eng.width / 2, eng.length - (eng.length / 8)),
-            (eng.width / 2 + 1, eng.length - (eng.length / 8)),
-        ];
-        points
-    };
-    let mut shooter = sprite::Sprite::new(engine.clone(), shooter_points)?;
-    shooter.spawn();
-    renderer.push(engine.borrow().output());
-    let mut bullet: sprite::Sprite = {
-        let eng = engine.borrow();
-        let starting_point = vec![(eng.width / 2, eng.length - (eng.length / 8) - 1)];
-        drop(eng);
-        sprite::Sprite::new(engine.clone(), starting_point)?
-    };
-    bullet.spawn();
-    bullet.move_up()?;
-    shooter.spawn();
-    renderer.push(engine.borrow().output());
-    'main_loop: loop {
-        match bullet.move_up() {
-            Ok(action) => {
-                if action == sprite::State::Collided {
-                    bullet.destroy();
-                    alien.destroy();
-                    renderer.push(engine.borrow().output());
-                    break 'main_loop;
-                }
-            }
-            Err(msg) => {
-                eprintln!("{}", msg);
-                break 'main_loop;
-            }
-        }
-        renderer.push(engine.borrow().output());
-    }
-    output_buffers(&mut renderer, 0.05);
-    Ok(())
-}
-
-enum Direction {
-    Right,
-    Left,
-}
-
-fn main() -> Result<(), errors::Error> {
-    // simulating the movement of an alien
-    let mut engine = Engine::new((100, 20)).as_rc();
-    let mut renderer = render::Render::new();
-    let mut direction = Direction::Right;
-    let mut alien = sprite::Sprite::new(engine.clone(), vec![(1, 1), (1, 2), (2, 1), (2, 2)])?;
-    alien.spawn();
-    renderer.push(engine.borrow().output());
+    let renderer = Renderer::new();
+    let actions: Arc<RwLock<Vec<listener::Action>>> = Arc::new(RwLock::new(Vec::new()));
+    let a_clone = actions.clone();
+    let _ = thread::spawn(move || {
+        listener::keyboard_listener(a_clone);
+    });
+    let mut shooter = spawn_shooter(engine.clone())?;
+    let mut aliens = spawn_aliens(engine.clone(), 10)?;
+    output(&engine, 0.01);
+    //sprite::actions::move_side_to_side(&mut aliens);
     loop {
-        match direction {
-            Direction::Right => {
-                if alien.move_right().is_err() {
-                    if alien.move_down().is_err() {
-                        break;
-                    };
-                    direction = Direction::Left;
-                }
-            }
-            Direction::Left => {
-                if alien.move_left().is_err() {
-                    if alien.move_down().is_err() {
-                        break;
-                    };
-                    direction = Direction::Right;
-                }
-            }
+        let mut acts = actions.write().unwrap();
+        if acts.is_empty() {
+            continue;
         }
-        renderer.push(engine.borrow().output());
+        match acts.remove(0) {
+            Action::Right => { shooter.move_right(); },
+            Action::Left => { shooter.move_left(); },
+            Action::Shoot => println!("PLAYER CHOSE TO SHOOT")
+        }
+        output(&engine, 0.01);
     }
-    output_buffers(&mut renderer, 0.01);
     Ok(())
 }
