@@ -1,17 +1,20 @@
 use crate::engine::{sprite::Sprite, Coordinate, Engine};
-use crate::output;
+//use crate::output;
+use crate::renderer::Renderer;
+
+use std::sync::{Arc, RwLock};
 
 enum Direction {
     Right,
     Left
 }
 
-pub(crate) fn move_side_to_side(sprites : &mut [Sprite]) {
+pub(crate) fn move_side_to_side(sprites : &mut [Sprite], renderer: Arc<RwLock<Renderer>>) {
     let mut direction = Direction::Right;
     loop {
         match direction {
             Direction::Right => {
-                if sprites.iter().any(|sprite| sprite.bounding_box.far_right + 1 >= sprite.engine.borrow().width) {
+                if sprites.iter().any(|sprite| sprite.bounding_box.far_right + 1 >= sprite.engine.read().unwrap().width) {
                     direction = Direction::Left;
                     continue;
                 }
@@ -29,6 +32,8 @@ pub(crate) fn move_side_to_side(sprites : &mut [Sprite]) {
                 }
             }
         }
-        output(&sprites[0].engine.clone(), 0.1);
+        renderer.write().unwrap().push(sprites[0].engine.read().unwrap().output());
+        crate::tool::sleep(0.05);
+        //output(&sprites[0].engine.clone(), 0.1);
     }
 }

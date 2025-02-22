@@ -23,6 +23,10 @@ impl Error {
             diagnosis: diagnosis.to_string(),
         }
     }
+
+    pub fn kind(&self) -> ErrorKind {
+        self.kind.clone()
+    }
 }
 
 impl fmt::Display for Error {

@@ -9,6 +9,7 @@ use crate::errors::{Error, ErrorKind};
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 
 fn _sort_coordinates(coordinates: &mut [Coordinate]) {
     // Sorting by x first, then by y
@@ -34,9 +35,9 @@ pub enum State {
 #[derive(Debug, Clone)]
 pub struct Sprite {
     collisions: bool,
-    engine: Rc<RefCell<Engine>>,
+    engine: Arc<RwLock<Engine>>,
     coordinates: Vec<Coordinate>,
-    bounding_box: BoundingBox,
+    pub(crate) bounding_box: BoundingBox,
 }
 
 /* /// THIS CODE IS GOING TO BE IMPLEMENTED LATER IN THE NEW FUNCTION
@@ -44,7 +45,7 @@ fn update_boundaries(&mut self) {
 } */
 
 impl Sprite {
-    pub fn new(engine: Rc<RefCell<Engine>>, coordinates: Vec<Coordinate>) -> Result<Self, Error> {
+    pub fn new(engine: Arc<RwLock<Engine>>, coordinates: Vec<Coordinate>) -> Result<Self, Error> {
         let collisions = true;
         {
             //error cases
@@ -54,7 +55,7 @@ impl Sprite {
                     "Not enough coordinates to create a sprite",
                 ));
             }
-            let __eng = engine.borrow();
+            let __eng = engine.read().unwrap();
             // checking that all coordinates
             // fit within the engine boundaries
             if !coordinates
@@ -84,7 +85,7 @@ impl Sprite {
         let mut far_bottom: usize = coordinates[0].1;
 
         for coor in coordinates.iter() {
-            if coor.1 < far_bottom {
+            if coor.1 > far_bottom {
                 far_bottom = coor.1;
             }
             if coor.0 > far_right {
@@ -139,7 +140,7 @@ impl Sprite {
     }
 
     pub fn spawn(&mut self) -> State {
-        let mut engine = self.engine.borrow_mut();
+        let mut engine = self.engine.write().unwrap();
         {
             spawn_sprite(&mut engine, &mut self.coordinates);
         }
@@ -147,7 +148,7 @@ impl Sprite {
     }
 
     pub fn move_up(&mut self) -> Result<State, Error> {
-        let mut engine = self.engine.borrow_mut();
+        let mut engine = self.engine.write().unwrap();
         {
             // checking that the sprite stays within the engine's boundaries
             //if self.far_top.1 as isize - 1 < 0 {
@@ -189,7 +190,7 @@ Engine's Dimensions: ({}, {})",
     }
 
     pub fn move_left(&mut self) -> Result<State, Error> {
-        let mut engine = self.engine.borrow_mut();
+        let mut engine = self.engine.write().unwrap();
         {
             // error case
             //if self.far_left.0 as isize - 1 < 0 {
@@ -232,7 +233,7 @@ Engine's Dimensions: ({}, {})",
 
     pub fn move_right(&mut self) -> Result<State, Error> {
         // reminder that the array gets reversed
-        let mut engine = self.engine.borrow_mut();
+        let mut engine = self.engine.write().unwrap();
         {
             // error case
             if self.bounding_box.far_right + 1 >= engine.width {
@@ -276,7 +277,7 @@ Engine's Dimensions: ({}, {})",
     pub fn move_down(&mut self) -> Result<State, Error> {
         // reminder that array gets reversed
         // assert the first element
-        let mut engine = self.engine.borrow_mut();
+        let mut engine = self.engine.write().unwrap();
         {
             // error case
             if self.bounding_box.far_bottom + 1 >= engine.length {
@@ -316,7 +317,7 @@ Engine's Dimensions: ({}, {})",
     }
 
     pub fn destroy(&mut self) -> State {
-        let mut engine = self.engine.borrow_mut();
+        let mut engine = self.engine.write().unwrap();
         for coor in self.coordinates.iter() {
             engine.reset(*coor);
         }

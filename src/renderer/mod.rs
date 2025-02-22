@@ -2,11 +2,12 @@
     A double buffer struct that gets frames to store for usage
 */
 use std::io::{self, Write, Result};
+use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Clone)]
 pub struct Renderer {
     pub frame_count: usize,
-    frames: Vec<String>,
+    frames: Vec<String>
 }
 
 impl Renderer {
@@ -15,6 +16,15 @@ impl Renderer {
             frames: Vec::new(),
             frame_count: 0,
         }
+    }
+
+
+    pub fn as_arc(self) -> Arc<RwLock<Self>> {
+        Arc::new(RwLock::new(self))
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.frames.is_empty()
     }
 
     pub fn push(&mut self, frame: String) {

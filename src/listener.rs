@@ -2,14 +2,17 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use std::sync::{Arc, RwLock};
 use std::io::Result;
 
+use crate::ActionQueue;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
     Left,
     Right,
-    Shoot
+    Shoot,
+    Terminate,
 }
 
-pub fn keyboard_listener(collector: Arc<RwLock<Vec<Action>>>) -> Result<()> {
+pub fn keyboard_listener(collector: Arc<RwLock<ActionQueue>>) -> Result<()> {
     loop {
         if let Event::Key(KeyEvent { code, kind, .. }) = event::read()? {
             if kind == event::KeyEventKind::Release {
@@ -24,6 +27,9 @@ pub fn keyboard_listener(collector: Arc<RwLock<Vec<Action>>>) -> Result<()> {
                     KeyCode::Char(charac) => {
                         if charac == ' ' {
                             c.push(Action::Shoot)
+                        }
+                        if charac == 'q' {
+                            c.push(Action::Terminate);
                         }
                     }
                     _ => {}

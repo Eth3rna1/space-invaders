@@ -9,6 +9,7 @@ use bbox::BoundingBox;
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 
 pub trait Within {
     fn within(&self, bbox: &BoundingBox) -> bool;
@@ -79,6 +80,10 @@ impl Engine {
 
     pub fn as_rc(self) -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(self))
+    }
+
+    pub fn as_arc(self) -> Arc<RwLock<Self>> {
+        Arc::new(RwLock::new(self))
     }
 
     pub fn is_on(&self, coordinate: Coordinate) -> bool {
