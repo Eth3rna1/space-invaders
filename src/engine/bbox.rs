@@ -10,23 +10,23 @@ pub struct BoundingBox {
 }
 
 impl BoundingBox {
-    pub fn increase_y(&mut self) {
-        self.far_top += 1;
-        self.far_bottom += 1;
+    pub fn increase_y(&mut self, amount: usize) {
+        self.far_top += amount;
+        self.far_bottom += amount;
     }
 
-    pub fn decrease_y(&mut self) {
-        self.far_top -= 1;
-        self.far_bottom -= 1;
+    pub fn decrease_y(&mut self, amount: usize) {
+        self.far_top -= amount;
+        self.far_bottom -= amount;
     }
 
-    pub fn increase_x(&mut self) {
-        self.far_right += 1;
-        self.far_left += 1;
+    pub fn increase_x(&mut self, amount: usize) {
+        self.far_right += amount;
+        self.far_left += amount;
     }
 
-    pub fn decrease_x(&mut self) {
-        self.far_right -= 1;
-        self.far_left -= 1;
+    pub fn decrease_x(&mut self, amount: usize) {
+        self.far_right -= amount;
+        self.far_left -= amount;
     }
 }

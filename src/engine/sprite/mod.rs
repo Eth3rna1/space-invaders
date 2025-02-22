@@ -1,11 +1,9 @@
-pub mod actions;
-
-use crate::constants::{BACKGROUND_CHAR, PIXEL_CHAR};
 use crate::engine::bbox::BoundingBox;
 use crate::engine::Coordinate;
 use crate::engine::Engine;
 use crate::engine::Within;
 use crate::errors::{Error, ErrorKind};
+use crate::{BACKGROUND_CHAR, PIXEL_CHAR};
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -35,8 +33,9 @@ pub enum State {
 #[derive(Debug, Clone)]
 pub struct Sprite {
     collisions: bool,
-    engine: Arc<RwLock<Engine>>,
+    engine: Rc<RefCell<Engine>>,
     coordinates: Vec<Coordinate>,
+    velocity: usize,
     pub(crate) bounding_box: BoundingBox,
 }
 
@@ -45,8 +44,11 @@ fn update_boundaries(&mut self) {
 } */
 
 impl Sprite {
-    pub fn new(engine: Arc<RwLock<Engine>>, coordinates: Vec<Coordinate>) -> Result<Self, Error> {
-        let collisions = true;
+    pub fn new(
+        engine: Rc<RefCell<Engine>>,
+        coordinates: Vec<Coordinate>,
+        velocity: usize,
+    ) -> Result<Self, Error> {
         {
             //error cases
             if coordinates.is_empty() {
@@ -55,7 +57,7 @@ impl Sprite {
                     "Not enough coordinates to create a sprite",
                 ));
             }
-            let __eng = engine.read().unwrap();
+            let __eng = engine.borrow();
             // checking that all coordinates
             // fit within the engine boundaries
             if !coordinates
@@ -99,8 +101,9 @@ impl Sprite {
             far_bottom,
         };
         Ok(Self {
-            collisions,
+            collisions: true,
             engine,
+            velocity,
             coordinates,
             bounding_box,
         })
@@ -120,7 +123,7 @@ impl Sprite {
         coordinate.within(&self.bounding_box)
     }
 
-    pub fn pop(&mut self, coordinate : Coordinate) -> Result<(), Error> {
+    pub fn pop(&mut self, coordinate: Coordinate) -> Result<(), Error> {
         if !self.contains(coordinate) {
             return Err(Error::new(ErrorKind::InexistentCoordinate, format!("Cannot pop coordinate because it doesn't exist within `{:?}`, referenced coordinate: {:?}", self as *const Sprite, coordinate)));
         }
@@ -130,7 +133,7 @@ impl Sprite {
                 //idx += 1;
                 if *coor == coordinate {
                     idx = i;
-                    break
+                    break;
                 }
             }
             idx
@@ -140,7 +143,7 @@ impl Sprite {
     }
 
     pub fn spawn(&mut self) -> State {
-        let mut engine = self.engine.write().unwrap();
+        let mut engine = self.engine.borrow_mut();
         {
             spawn_sprite(&mut engine, &mut self.coordinates);
         }
@@ -148,7 +151,7 @@ impl Sprite {
     }
 
     pub fn move_up(&mut self) -> Result<State, Error> {
-        let mut engine = self.engine.write().unwrap();
+        let mut engine = self.engine.borrow_mut();
         {
             // checking that the sprite stays within the engine's boundaries
             //if self.far_top.1 as isize - 1 < 0 {
@@ -156,41 +159,39 @@ impl Sprite {
             if self.bounding_box.far_top == 0 {
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
-                    format!(
-                        "Y value does not fit within the engine boundaries;
-
-Far Top Y-Value: {}
-
-Engine's Dimensions: ({}, {})",
-                        self.bounding_box.far_top, engine.width, engine.length
-                    ),
+                    "Hit the far top boundry",
                 ));
             }
         }
         {
-            // checking for collisions
-            //if self.far_top_coordinates.iter().any(|coor| {
-            //    let upcoming_coor: Coordinate = (coor.0, coor.1 - 1);
-            //    engine.is_on(upcoming_coor)
-            //}) && self.collisions
-            //{
-            //    return Ok(State::Collided);
-            //}
-            if engine.is_on((self.bounding_box.far_left, self.bounding_box.far_top + 1))
-                && self.collisions
-            {
-                return Ok(State::Collided);
+            for i in 0..self.velocity {
+                {
+                    if self.bounding_box.far_top == 0 {
+                        return Err(Error::new(
+                            ErrorKind::OutOfBounds,
+                            "Hit the far top boundry",
+                        ));
+                    }
+                }
+                {
+                    // collision detection
+                    if engine.is_on((self.bounding_box.far_left, self.bounding_box.far_top - 1))
+                        && self.collisions
+                    {
+                        return Ok(State::Collided);
+                    }
+                }
+                {
+                    move_sprite_down(&mut engine, &mut self.coordinates);
+                    self.bounding_box.decrease_y(1);
+                }
             }
         }
-        {
-            move_sprite_up(&mut engine, &mut self.coordinates);
-        }
-        self.bounding_box.decrease_y();
         Ok(State::Moved)
     }
 
     pub fn move_left(&mut self) -> Result<State, Error> {
-        let mut engine = self.engine.write().unwrap();
+        let mut engine = self.engine.borrow_mut();
         {
             // error case
             //if self.far_left.0 as isize - 1 < 0 {
@@ -198,126 +199,113 @@ Engine's Dimensions: ({}, {})",
             if self.bounding_box.far_left == 0 {
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
-                    format!(
-                        "Y value does not fit within the engine boundaries;
-
-Far Left X-Value: {:?}
-
-Engine's Dimensions: ({}, {})",
-                        self.bounding_box.far_left, engine.width, engine.length
-                    ),
+                    "Hit the far left boundry",
                 ));
             }
         }
         {
-            // checking for collisions
-            //if self.far_top_coordinates.iter().any(|coor| {
-            //    let upcoming_coor: Coordinate = (coor.0 - 1, coor.1);
-            //    engine.is_on(upcoming_coor)
-            //}) && self.collisions
-            //{
-            //    return Ok(State::Collided);
-            //}
-            if engine.is_on((self.bounding_box.far_left - 1, self.bounding_box.far_top))
-                && self.collisions
-            {
-                return Ok(State::Collided);
+            for i in 0..self.velocity {
+                {
+                    if self.bounding_box.far_left == 0 {
+                        return Err(Error::new(
+                            ErrorKind::OutOfBounds,
+                            "Hit the far left boundry",
+                        ));
+                    }
+                }
+                {
+                    if engine.is_on((self.bounding_box.far_left - 1, self.bounding_box.far_top))
+                        && self.collisions
+                    {
+                        return Ok(State::Collided);
+                    }
+                }
+                {
+                    move_sprite_left(&mut engine, &mut self.coordinates);
+                    self.bounding_box.decrease_x(1);
+                }
             }
         }
-        {
-            move_sprite_left(&mut engine, &mut self.coordinates);
-        }
-        self.bounding_box.decrease_x();
         Ok(State::Moved)
     }
 
     pub fn move_right(&mut self) -> Result<State, Error> {
         // reminder that the array gets reversed
-        let mut engine = self.engine.write().unwrap();
+        let mut engine = self.engine.borrow_mut();
         {
             // error case
-            if self.bounding_box.far_right + 1 >= engine.width {
+            if self.bounding_box.far_right == engine.width - 1 {
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
-                    format!(
-                        "Y value does not fit within the engine boundaries;
-
-Far Right X-Value: {:?}
-
-Engine's Dimensions: ({}, {})",
-                        self.bounding_box.far_right, engine.width, engine.length
-                    ),
+                    "Hit the far right boundry",
                 ));
             }
         }
         {
-            // checking for collisions
-            //if self.far_top_coordinates.iter().any(|coor| {
-            //    let upcoming_coor: Coordinate = (coor.0 + 1, coor.1);
-            //    engine.is_on(upcoming_coor)
-            //}) && self.collisions
-            //{
-            //    return Ok(State::Collided);
-            //}
-            if engine.is_on((
-                self.bounding_box.far_right + 1,
-                self.bounding_box.far_bottom,
-            )) && self.collisions
-            {
-                return Ok(State::Collided);
+            for i in 0..self.velocity {
+                {
+                    if self.bounding_box.far_right == engine.width - 1 {
+                        return Err(Error::new(
+                            ErrorKind::OutOfBounds,
+                            "Hit the far right boundry",
+                        ));
+                    }
+                }
+                {
+                    if engine.is_on((
+                        self.bounding_box.far_right + 1,
+                        self.bounding_box.far_bottom,
+                    )) && self.collisions
+                    {
+                        return Ok(State::Collided);
+                    }
+                }
+                {
+                    move_sprite_right(&mut engine, &mut self.coordinates);
+                    self.bounding_box.increase_x(1);
+                }
             }
         }
-        {
-            move_sprite_right(&mut engine, &mut self.coordinates);
-        }
-        self.bounding_box.increase_x();
         Ok(State::Moved)
     }
 
     pub fn move_down(&mut self) -> Result<State, Error> {
         // reminder that array gets reversed
         // assert the first element
-        let mut engine = self.engine.write().unwrap();
+        let mut engine = self.engine.borrow_mut();
         {
             // error case
-            if self.bounding_box.far_bottom + 1 >= engine.length {
+            if self.bounding_box.far_bottom == engine.length - 1 {
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
-                    format!(
-                        "Y value does not fit within the engine boundaries;
-
-Referenced Coordinate: {:?}
-
-Engine's Dimensions: ({}, {})",
-                        self.bounding_box.far_bottom, engine.width, engine.length
-                    ),
+                    "hit the far bottom boundry",
                 ));
             }
         }
         {
-            // checking for collisions
-            //if self.far_top_coordinates.iter().any(|coor| {
-            //    let upcoming_coor: Coordinate = (coor.0, coor.1 + 1);
-            //    engine.is_on(upcoming_coor)
-            //}) && self.collisions
-            //{
-            //    return Ok(State::Collided);
-            //}
-            if engine.is_on((self.bounding_box.far_left, self.bounding_box.far_bottom + 1))
-                && self.collisions
-            {
-                return Ok(State::Collided);
+            for i in 0..self.velocity {
+                {
+                    if self.bounding_box.far_bottom == engine.length - 1 {
+                        return Err(Error::new(
+                            ErrorKind::OutOfBounds,
+                            "Hit the far bottom boundry",
+                        ));
+                    }
+                }
+                {
+                    if engine.is_on((self.bounding_box.far_left, self.bounding_box.far_bottom + 1))
+                        && self.collisions
+                    {
+                        return Ok(State::Collided);
+                    }
+                }
             }
         }
-        {
-            move_sprite_down(&mut engine, &mut self.coordinates);
-        }
-        self.bounding_box.increase_y();
         Ok(State::Moved)
     }
 
     pub fn destroy(&mut self) -> State {
-        let mut engine = self.engine.write().unwrap();
+        let mut engine = self.engine.borrow_mut();
         for coor in self.coordinates.iter() {
             engine.reset(*coor);
         }

@@ -4,7 +4,6 @@
 */
 pub mod bbox;
 pub mod sprite;
-use crate::constants::{BACKGROUND_CHAR, PIXEL_CHAR};
 use bbox::BoundingBox;
 
 use std::cell::RefCell;
@@ -104,13 +103,13 @@ impl Engine {
         self.matrix[c2.1][c2.0] = tmp;
     }
 
-    pub fn output(&self) -> String {
+    pub fn display(&self, pixel_char: char, background_char: char) -> String {
         let mut interface = String::new();
         for r in 0..self.length {
             for c in 0..self.width {
                 match self.matrix[r][c] {
-                    PixelState::On => interface.push(PIXEL_CHAR),
-                    PixelState::Off => interface.push(BACKGROUND_CHAR),
+                    PixelState::On => interface.push(pixel_char),
+                    PixelState::Off => interface.push(background_char),
                 }
             }
             interface += "\n";
