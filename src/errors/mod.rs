@@ -27,6 +27,10 @@ impl Error {
     pub fn kind(&self) -> ErrorKind {
         self.kind.clone()
     }
+
+    pub fn diagnosis(&self) -> String {
+        self.diagnosis.clone()
+    }
 }
 
 impl fmt::Display for Error {

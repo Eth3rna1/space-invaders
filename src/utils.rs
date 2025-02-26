@@ -15,6 +15,7 @@ pub(crate) fn refresh() {
     print!("\x1B[H");
 }
 
+/// Delays any thread action
 pub(crate) fn sleep(n: f64) {
     thread::sleep(Duration::from_secs_f64(n));
 }

@@ -7,6 +7,7 @@ use crate::errors::{Error, ErrorKind};
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::slice::Iter;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Direction {
@@ -27,13 +28,33 @@ impl Aliens {
         if count == 0 {
             return Err(Error::new(ErrorKind::Other, "Alien count cannot be 0"));
         }
-        //let alien = Sprite::new(engine, position, velocity)?;
         let (width, length): (usize, usize) = {
             let eng = engine.borrow();
             (eng.width, eng.length)
         };
+        let mut sprites: Vec<Sprite> = Vec::new();
+        let delta = width / count;
+        let mut c = 0;
+        for row in [4, 7, 10] {
+            for col in 0..count {
+                if c + delta >= width {
+                    break;
+                }
+                let position = vec![
+                    //(c, row),
+                    (c + 1, row),
+                    //(c + 2, row),
+                    (c, row - 1),
+                    //(c + 1, row - 1),
+                    (c + 2, row - 1),
+                ];
+                sprites.push(Sprite::new(engine.clone(), position, velocity)?);
+                c += delta;
+            }
+            c = 0
+        }
         Ok(Self {
-            sprites: Vec::new(),
+            sprites,
             direction: Direction::Right,
             width,
             length,
@@ -46,10 +67,14 @@ impl Aliens {
         }
     }
 
+    pub fn iter(&self) -> Iter<'_, Sprite> {
+        self.sprites.iter()
+    }
+
     pub fn step(&mut self) -> Result<State, Error> {
         match self.direction {
             Direction::Right => {
-                if self.sprites[0].bounding_box.far_right == self.width {
+                if self.sprites[self.sprites.len() - 1].bounding_box.far_right == self.width - 1 {
                     self.direction = Direction::Left;
                     return Err(Error::new(
                         ErrorKind::OutOfBounds,
@@ -61,7 +86,7 @@ impl Aliens {
                 }
             }
             Direction::Left => {
-                if self.sprites[self.sprites.len() - 1].bounding_box.far_left == 0 {
+                if self.sprites[0].bounding_box.far_left == 0 {
                     self.direction = Direction::Right;
                     return Err(Error::new(
                         ErrorKind::OutOfBounds,
@@ -76,3 +101,4 @@ impl Aliens {
         Ok(State::Moved)
     }
 }
+

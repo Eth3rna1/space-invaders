@@ -1,12 +1,9 @@
 mod aliens;
+mod bullet;
 mod shooter;
+mod speedster;
 
 pub use aliens::Aliens;
+pub use bullet::Bullet;
 pub use shooter::Shooter;
-//use crate::engine::sprite::State;
-//use crate::errors::Error;
-//
-//
-//pub trait Step {
-//    fn step(&mut self) -> Result<State, Error>;
-//}
+pub use speedster::Speedster;

@@ -23,20 +23,23 @@ fn _sort_coordinates(coordinates: &mut [Coordinate]) {
 /// State of the sprite after a method has been called
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum State {
-    Collided,
+    Collided(Coordinate),
     Destroyed,
     Spawned,
     Moved,
+    Hit,
+    Null,
 }
 
 /// A group of pixels
 #[derive(Debug, Clone)]
 pub struct Sprite {
     collisions: bool,
-    engine: Rc<RefCell<Engine>>,
-    coordinates: Vec<Coordinate>,
-    velocity: usize,
+    pub(crate) engine: Rc<RefCell<Engine>>,
+    pub(crate) coordinates: Vec<Coordinate>,
+    pub(crate) velocity: usize,
     pub(crate) bounding_box: BoundingBox,
+    is_destroyed: bool,
 }
 
 /* /// THIS CODE IS GOING TO BE IMPLEMENTED LATER IN THE NEW FUNCTION
@@ -106,6 +109,7 @@ impl Sprite {
             velocity,
             coordinates,
             bounding_box,
+            is_destroyed: false,
         })
     }
 
@@ -115,15 +119,19 @@ impl Sprite {
         self
     }
 
-    pub fn contains(&self, coordinate: Coordinate) -> bool {
-        //if coordinate.within(self.bounding_box) {
-        //    true
-        //}
-        //false
-        coordinate.within(&self.bounding_box)
+    pub fn is_destroyed(&self) -> bool {
+        self.is_destroyed
     }
 
-    pub fn pop(&mut self, coordinate: Coordinate) -> Result<(), Error> {
+    pub fn contains(&self, coordinate: Coordinate) -> bool {
+        //coordinate.within(&self.bounding_box)
+        self.coordinates.contains(&coordinate)
+    }
+
+    pub fn pop(&mut self, coordinate: Coordinate) -> Result<State, Error> {
+        if self.is_destroyed {
+            return Ok(State::Destroyed);
+        }
         if !self.contains(coordinate) {
             return Err(Error::new(ErrorKind::InexistentCoordinate, format!("Cannot pop coordinate because it doesn't exist within `{:?}`, referenced coordinate: {:?}", self as *const Sprite, coordinate)));
         }
@@ -139,10 +147,11 @@ impl Sprite {
             idx
         };
         self.coordinates.remove(index);
-        Ok(())
+        Ok(State::Hit)
     }
 
     pub fn spawn(&mut self) -> State {
+        self.is_destroyed = false;
         let mut engine = self.engine.borrow_mut();
         {
             spawn_sprite(&mut engine, &mut self.coordinates);
@@ -151,6 +160,11 @@ impl Sprite {
     }
 
     pub fn move_up(&mut self) -> Result<State, Error> {
+        {
+            if self.is_destroyed {
+                return Ok(State::Destroyed);
+            }
+        }
         let mut engine = self.engine.borrow_mut();
         {
             // checking that the sprite stays within the engine's boundaries
@@ -164,7 +178,7 @@ impl Sprite {
             }
         }
         {
-            for i in 0..self.velocity {
+            for _ in 0..self.velocity {
                 {
                     if self.bounding_box.far_top == 0 {
                         return Err(Error::new(
@@ -175,14 +189,16 @@ impl Sprite {
                 }
                 {
                     // collision detection
-                    if engine.is_on((self.bounding_box.far_left, self.bounding_box.far_top - 1))
-                        && self.collisions
-                    {
-                        return Ok(State::Collided);
+                    let far_left = self.bounding_box.far_left;
+                    let far_right = self.bounding_box.far_right;
+                    let far_top = self.bounding_box.far_top;
+                    let middle_x = far_left + ((far_right - far_left) / 2);
+                    if engine.is_on((middle_x, far_top - 1)) && self.collisions {
+                        return Ok(State::Collided((middle_x, far_top - 1)));
                     }
                 }
                 {
-                    move_sprite_down(&mut engine, &mut self.coordinates);
+                    move_sprite_up(&mut engine, &mut self.coordinates);
                     self.bounding_box.decrease_y(1);
                 }
             }
@@ -191,6 +207,11 @@ impl Sprite {
     }
 
     pub fn move_left(&mut self) -> Result<State, Error> {
+        {
+            if self.is_destroyed {
+                return Ok(State::Destroyed);
+            }
+        }
         let mut engine = self.engine.borrow_mut();
         {
             // error case
@@ -204,7 +225,7 @@ impl Sprite {
             }
         }
         {
-            for i in 0..self.velocity {
+            for _ in 0..self.velocity {
                 {
                     if self.bounding_box.far_left == 0 {
                         return Err(Error::new(
@@ -214,10 +235,13 @@ impl Sprite {
                     }
                 }
                 {
-                    if engine.is_on((self.bounding_box.far_left - 1, self.bounding_box.far_top))
-                        && self.collisions
-                    {
-                        return Ok(State::Collided);
+                    // collision detection moving right
+                    let far_left = self.bounding_box.far_left;
+                    let far_top = self.bounding_box.far_top;
+                    let far_bottom = self.bounding_box.far_bottom;
+                    let middle_y = far_top + ((far_bottom - far_top) / 2);
+                    if engine.is_on((far_left - 1, middle_y)) && self.collisions {
+                        return Ok(State::Collided((far_left - 1, middle_y)));
                     }
                 }
                 {
@@ -230,6 +254,11 @@ impl Sprite {
     }
 
     pub fn move_right(&mut self) -> Result<State, Error> {
+        {
+            if self.is_destroyed {
+                return Ok(State::Destroyed);
+            }
+        }
         // reminder that the array gets reversed
         let mut engine = self.engine.borrow_mut();
         {
@@ -252,12 +281,13 @@ impl Sprite {
                     }
                 }
                 {
-                    if engine.is_on((
-                        self.bounding_box.far_right + 1,
-                        self.bounding_box.far_bottom,
-                    )) && self.collisions
-                    {
-                        return Ok(State::Collided);
+                    // collision detection moving right
+                    let far_right = self.bounding_box.far_right;
+                    let far_top = self.bounding_box.far_top;
+                    let far_bottom = self.bounding_box.far_bottom;
+                    let middle_y = far_top + ((far_bottom - far_top) / 2);
+                    if engine.is_on((far_right + 1, middle_y)) && self.collisions {
+                        return Ok(State::Collided((far_right + 1, middle_y)));
                     }
                 }
                 {
@@ -272,6 +302,11 @@ impl Sprite {
     pub fn move_down(&mut self) -> Result<State, Error> {
         // reminder that array gets reversed
         // assert the first element
+        {
+            if self.is_destroyed {
+                return Ok(State::Destroyed);
+            }
+        }
         let mut engine = self.engine.borrow_mut();
         {
             // error case
@@ -293,11 +328,18 @@ impl Sprite {
                     }
                 }
                 {
-                    if engine.is_on((self.bounding_box.far_left, self.bounding_box.far_bottom + 1))
-                        && self.collisions
-                    {
-                        return Ok(State::Collided);
+                    // collision detection moving down
+                    let far_left = self.bounding_box.far_left;
+                    let far_right = self.bounding_box.far_right;
+                    let far_bottom = self.bounding_box.far_bottom;
+                    let middle_x = far_left + ((far_right - far_left) / 2);
+                    if engine.is_on((middle_x, far_bottom + 1)) && self.collisions {
+                        return Ok(State::Collided((middle_x, far_bottom + 1)));
                     }
+                }
+                {
+                    move_sprite_down(&mut engine, &mut self.coordinates);
+                    self.bounding_box.increase_y(1);
                 }
             }
         }
@@ -309,6 +351,7 @@ impl Sprite {
         for coor in self.coordinates.iter() {
             engine.reset(*coor);
         }
+        self.is_destroyed = true;
         State::Destroyed
     }
 }

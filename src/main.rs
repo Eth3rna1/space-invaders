@@ -16,7 +16,7 @@ use engine::{
     sprite::{self, Sprite},
     Coordinate, Engine,
 };
-use entities::{Aliens, Shooter};
+use entities::{Aliens, Bullet, Shooter, Speedster};
 use errors::{Error, ErrorKind};
 use listener::{get_key, key_pressed};
 use std::cell::RefCell;
@@ -25,68 +25,101 @@ use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::thread::{self, JoinHandle};
 
-const DELTA_TIME: f64 = 0.05;
-const ALIEN_COUNT: usize = 7;
-const PIXEL_CHAR: char = '#';
+const DELTA_TIME: f64 = 0.07;
+const ALIEN_COUNT: usize = 6;
+//const PLANE_DIMENSIONS: Coordinate = (100, 25); // (WIDTH, HEIGHT)
+const PLANE_DIMENSIONS: Coordinate = (100, 20); // (WIDTH, HEIGHT)
+
+//const PIXEL_CHAR: char = '█';
+//const PIXEL_CHAR: char = '▀';
+const PIXEL_CHAR: char = '⨊';
 const BACKGROUND_CHAR: char = '.';
-const PLANE_DIMENSIONS: Coordinate = (100, 25); // (WIDTH, HEIGHT)
-const SHOOTER_STEP_PER_DELTA: usize = 1;
 
-fn spawn_aliens(engine: Rc<RefCell<Engine>>) -> Result<Sprite, Error> {
-    todo!()
-}
-
-fn spawn_shooter(engine: Rc<RefCell<Engine>>) -> Result<Sprite, Error> {
-    let mut position: Vec<Coordinate> = {
-        let mut eng = engine.borrow();
-        vec![
-            (eng.width / 2, eng.length - (eng.length / 7)),
-            (eng.width / 2 - 1, eng.length - (eng.length / 7)),
-            (eng.width / 2 + 1, eng.length - (eng.length / 7)),
-            (eng.width / 2, eng.length - (eng.length / 7) - 1),
-        ]
-    };
-    let mut shooter = Sprite::new(engine, position, 3)?;
-    shooter.spawn();
-    Ok(shooter)
-}
-
-fn spawn_bullet(engine: Rc<RefCell<Engine>>, position: Coordinate) -> Result<Sprite, Error> {
-    let mut bullet = Sprite::new(engine, vec![position], 3)?;
-    bullet.spawn();
-    Ok(bullet)
-}
+const ALIEN_STEP_PER_DELTA: usize = 1;
+const BULLET_STEP_PER_DELTA: usize = 2;
+const SHOOTER_STEP_PER_DELTA: usize = 3;
+const SPEEDSTER_STEP_PER_DELTA: usize = 4;
 
 struct SpaceInvaders {
     key: Option<String>,
     engine: Rc<RefCell<Engine>>,
-    //alines: Aliens,
+    aliens: Aliens,
     shooter: Shooter,
+    bullets: Vec<Bullet>,
+    speedster: Speedster,
 }
 
 impl SpaceInvaders {
     fn new() -> Result<Self, Error> {
+        //let PLANE_DIMENSIONS: (usize, usize) = {
+        //    let (x, y) = terminal::size().unwrap();
+        //    (x as usize - 2, y as usize - 3)
+        //};
         let engine = Engine::new(PLANE_DIMENSIONS).as_rc();
         Ok(Self {
             key: None,
+            aliens: Aliens::new(engine.clone(), ALIEN_COUNT, ALIEN_STEP_PER_DELTA)?,
             shooter: Shooter::new(engine.clone(), SHOOTER_STEP_PER_DELTA)?,
+            speedster: Speedster::new(engine.clone(), SPEEDSTER_STEP_PER_DELTA)?,
             engine,
+            bullets: Vec::new(),
         })
     }
 
     fn set_up(&mut self) {
         self.shooter.spawn();
+        self.aliens.spawn();
+        self.speedster.spawn();
     }
 
     fn handle_input(&mut self) {
         self.key = get_key();
     }
 
-    fn update(&mut self) -> Result<(), Error> {
-        if let Some(ref key) = self.key {
-            self.shooter.step(key)?;
+    fn update(&mut self) -> Result<(), String> {
+        let mut result: Result<(), String> = Ok(());
+        {
+            // checking for new bullet
+            if self.key == Some(" ".to_string()) {
+                let position = self.shooter.head();
+                match Bullet::new(self.engine.clone(), vec![position], BULLET_STEP_PER_DELTA) {
+                    Ok(mut bullet) => {
+                        let _ = bullet.spawn();
+                        self.bullets.push(bullet);
+                    }
+                    Err(err) => result = Err(err.diagnosis()),
+                }
+            }
         }
-        Ok(())
+        {
+            // moving bullets
+            for bullet in self.bullets.iter_mut() {
+                //result = bullet.step();
+                if let Err(error) = bullet.step() {
+                    result = Err(error.diagnosis());
+                }
+            }
+        }
+        {
+            // moving player
+            if let Some(ref key) = self.key {
+                if let Err(error) = self.shooter.step(key) {
+                    result = Err(error.diagnosis());
+                }
+            }
+        }
+        {
+            // moving aliens
+            let _ = self.aliens.step();
+        }
+        {
+            // moving speedster
+            if self.speedster.is_destroyed() {
+                self.speedster.respawn();
+            }
+            let _ = self.speedster.step();
+        }
+        result
     }
 
     fn output(&self) {
@@ -107,7 +140,7 @@ impl SpaceInvaders {
 fn main() -> Result<(), Error> {
     //terminal::enable_raw_mode();
     utils::clear();
-    let mut banner: String = "Welcome to SpaceInvaders".to_string();
+    let mut banner: String = "Welcome to Space Invaders".to_string();
     let mut game = SpaceInvaders::new()?;
     game.set_up();
     loop {
@@ -115,8 +148,7 @@ fn main() -> Result<(), Error> {
         if let Err(msg) = game.update() {
             banner = msg.to_string();
         }
-        game.update();
-        println!("{}{}", banner, " ".repeat(20));
+        println!("{}{}", banner, " ".repeat(15));
         game.output();
         if game.over() {
             break;

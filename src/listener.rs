@@ -3,17 +3,12 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use std::io::Result;
 use std::sync::{Arc, RwLock};
 
-//#[derive(Debug, Clone, PartialEq, Eq)]
-//pub enum Action {
-//    Left,
-//    Right,
-//    Shoot,
-//    Terminate,
-//}
-
 pub fn get_key() -> Option<String> {
     if event::poll(std::time::Duration::from_millis(10)).unwrap() {
-        if let Ok(Event::Key(KeyEvent { code, .. })) = event::read() {
+        if let Ok(Event::Key(KeyEvent { code, kind, .. })) = event::read() {
+            if kind == event::KeyEventKind::Release {
+                return None;
+            }
             return match code {
                 KeyCode::Esc => Some("esc".to_string()),
                 KeyCode::Right => Some("right".to_string()),
