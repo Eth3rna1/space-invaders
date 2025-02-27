@@ -23,6 +23,10 @@ impl Speedster {
         })
     }
 
+    pub fn contains(&self, coordinate: Coordinate) -> bool {
+        self.sprite.contains(coordinate)
+    }
+
     pub fn is_destroyed(&self) -> bool {
         self.sprite.is_destroyed()
     }
@@ -60,5 +64,9 @@ impl Speedster {
             far_left + ((far_right - far_left) / 2),
             self.sprite.bounding_box.far_bottom + 1, // if doesn't work, try +2
         )
+    }
+
+    pub fn destroy(&mut self) -> State {
+        self.sprite.destroy()
     }
 }

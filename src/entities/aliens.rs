@@ -7,7 +7,7 @@ use crate::errors::{Error, ErrorKind};
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::slice::Iter;
+use std::slice::{Iter, IterMut};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Direction {
@@ -71,6 +71,10 @@ impl Aliens {
         self.sprites.iter()
     }
 
+    pub fn iter_mut(&mut self) -> IterMut<'_, Sprite> {
+        self.sprites.iter_mut()
+    }
+
     pub fn step(&mut self) -> Result<State, Error> {
         match self.direction {
             Direction::Right => {
@@ -82,7 +86,10 @@ impl Aliens {
                     ));
                 }
                 for sprite in self.sprites.iter_mut() {
-                    let _ = sprite.move_right(); // collision logic has not been implemented yet
+                    let result = sprite.move_right();
+                    if let Ok(State::Collided(_)) = result {
+                        sprite.destroy(); // automatically dies
+                    }
                 }
             }
             Direction::Left => {

@@ -36,4 +36,12 @@ impl Bullet {
         }
         result
     }
+
+    pub fn contains(&mut self, coordinate: Coordinate) -> bool {
+        self.sprite.contains(coordinate)
+    }
+
+    pub fn destroy(&mut self) -> Result<State, Error> {
+        Ok(self.sprite.destroy())
+    }
 }

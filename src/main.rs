@@ -13,7 +13,7 @@ mod utils;
 
 use crossterm::terminal;
 use engine::{
-    sprite::{self, Sprite},
+    sprite::{self, Sprite, State},
     Coordinate, Engine,
 };
 use entities::{Aliens, Bullet, Shooter, Speedster};
@@ -94,9 +94,22 @@ impl SpaceInvaders {
         {
             // moving bullets
             for bullet in self.bullets.iter_mut() {
-                //result = bullet.step();
-                if let Err(error) = bullet.step() {
+                let _result = bullet.step();
+                if let Err(error) = _result {
                     result = Err(error.diagnosis());
+                } else if let Ok(State::Collided(coordinate)) = _result {
+                    // The bullet hit something
+                    if self.speedster.contains(coordinate) {
+                        self.speedster.destroy();
+                        bullet.destroy();
+                    }
+                    for alien in self.aliens.iter_mut() {
+                        if alien.contains(coordinate) {
+                            alien.destroy();
+                            bullet.destroy();
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -110,14 +123,31 @@ impl SpaceInvaders {
         }
         {
             // moving aliens
-            let _ = self.aliens.step();
+            if let Ok(State::Collided(coordinate)) = self.aliens.step() {
+                for bullet in self.bullets.iter_mut() {
+                    if bullet.contains(coordinate) {
+
+                        bullet.destroy();
+                        break;
+                    }
+                }
+            }
         }
         {
             // moving speedster
             if self.speedster.is_destroyed() {
                 self.speedster.respawn();
             }
-            let _ = self.speedster.step();
+            if let Ok(State::Collided(coordinate)) = self.speedster.step() {
+                for bullet in &mut self.bullets {
+                    if bullet.contains(coordinate) {
+                        bullet.destroy();
+                        self.speedster.destroy();
+                        break;
+                    }
+                }
+                //for bullet
+            }
         }
         result
     }
