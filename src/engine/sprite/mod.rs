@@ -3,7 +3,6 @@ use crate::engine::Coordinate;
 use crate::engine::Engine;
 use crate::engine::Within;
 use crate::errors::{Error, ErrorKind};
-use crate::{BACKGROUND_CHAR, PIXEL_CHAR};
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -96,6 +95,12 @@ impl Sprite {
             if coor.0 > far_right {
                 far_right = coor.0;
             }
+            // if coor.1 < far_top {
+            //     far_top = coor.1;
+            // }
+            // if coor.0 < far_left {
+            //     far_left = coor.0;
+            // }
         }
         let bounding_box = BoundingBox {
             far_top,
