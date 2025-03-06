@@ -30,7 +30,7 @@ impl Aliens {
         }
         let (width, length): (usize, usize) = {
             let eng = engine.borrow();
-            (eng.width, eng.length)
+            (eng.width, eng.height)
         };
         let mut sprites: Vec<Sprite> = Vec::new();
         let delta = width / count;

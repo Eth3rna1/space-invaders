@@ -19,12 +19,12 @@ impl Shooter {
         let position: Vec<Coordinate> = {
             let eng = engine.borrow();
             vec![
-                (eng.width / 2 + 2, eng.length - (eng.length / 7)),
-                (eng.width / 2 - 2, eng.length - (eng.length / 7)),
-                (eng.width / 2, eng.length - (eng.length / 7)),
-                (eng.width / 2, eng.length - (eng.length / 7) - 1),
-                (eng.width / 2 + 1, eng.length - (eng.length / 7)),
-                (eng.width / 2 - 1, eng.length - (eng.length / 7)),
+                (eng.width / 2 + 2, eng.height - (eng.height / 7)),
+                (eng.width / 2 - 2, eng.height - (eng.height / 7)),
+                (eng.width / 2, eng.height - (eng.height / 7)),
+                (eng.width / 2, eng.height - (eng.height / 7) - 1),
+                (eng.width / 2 + 1, eng.height - (eng.height / 7)),
+                (eng.width / 2 - 1, eng.height - (eng.height / 7)),
             ]
         };
         Ok(Self {
