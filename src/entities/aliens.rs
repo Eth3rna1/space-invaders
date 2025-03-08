@@ -24,7 +24,7 @@ pub struct Aliens {
 }
 
 impl Aliens {
-    pub fn new(engine: Rc<RefCell<Engine>>, count: usize, velocity: usize) -> Result<Self, Error> {
+    pub fn new(engine: Rc<RefCell<Engine>>, count: usize, velocity: f64) -> Result<Self, Error> {
         if count == 0 {
             return Err(Error::new(ErrorKind::Other, "Alien count cannot be 0"));
         }

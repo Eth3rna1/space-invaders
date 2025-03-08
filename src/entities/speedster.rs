@@ -12,7 +12,7 @@ pub struct Speedster {
 }
 
 impl Speedster {
-    pub fn new(engine: Rc<RefCell<Engine>>, velocity: usize) -> Result<Self, Error> {
+    pub fn new(engine: Rc<RefCell<Engine>>, velocity: f64) -> Result<Self, Error> {
         let position = {
             let eng = engine.borrow();
             vec![(eng.width - 1, 0), (eng.width - 2, 0), (eng.width - 3, 0)]

@@ -16,7 +16,7 @@ impl SpeedsterBullet {
     pub fn new(
         engine: Rc<RefCell<Engine>>,
         position: Vec<Coordinate>,
-        velocity: usize,
+        velocity: f64,
     ) -> Result<Self, Error> {
         Ok(Self {
             sprite: Sprite::new(engine, position, velocity)?,
