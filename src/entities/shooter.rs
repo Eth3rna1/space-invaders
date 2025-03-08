@@ -15,7 +15,7 @@ pub struct Shooter {
 }
 
 impl Shooter {
-    pub fn new(engine: Rc<RefCell<Engine>>, velocity: usize) -> Result<Self, Error> {
+    pub fn new(engine: Rc<RefCell<Engine>>, velocity: f64) -> Result<Self, Error> {
         let position: Vec<Coordinate> = {
             let eng = engine.borrow();
             vec![

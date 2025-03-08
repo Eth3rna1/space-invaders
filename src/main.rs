@@ -9,6 +9,7 @@ mod engine;
 mod entities;
 mod errors;
 mod listener;
+mod space_invaders;
 mod utils;
 
 use crossterm::terminal;
@@ -16,7 +17,6 @@ use engine::{
     sprite::{self, Sprite, State},
     Coordinate, Engine,
 };
-use entities::{Aliens, Bullet, Shooter, Speedster, SpeedsterBullet};
 use errors::{Error, ErrorKind};
 use listener::{get_key, key_pressed};
 use std::cell::RefCell;
@@ -25,201 +25,207 @@ use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::thread::{self, JoinHandle};
 
-const DELTA_TIME: f64 = 0.07;
+static mut DELTA_TIME: f64 = 0.07;
+//static mut DELTA_TIME: f64 = 0.5;
 const ALIEN_COUNT: usize = 6;
-//const PLANE_DIMENSIONS: Coordinate = (100, 25); // (WIDTH, HEIGHT)
-//const PLANE_DIMENSIONS: Coordinate = (100, 20); // (WIDTH, HEIGHT)
+const PLANE_DIMENSIONS: Coordinate = (100, 25); // (WIDTH, HEIGHT)
 
 //const PIXEL_CHAR: char = '█';
 //const PIXEL_CHAR: char = '▀';
 const PIXEL_CHAR: char = '⨊';
 const BACKGROUND_CHAR: char = '.';
 
-const ALIEN_STEP_PER_DELTA: usize = 1;
-const BULLET_STEP_PER_DELTA: usize = 2;
-const SHOOTER_STEP_PER_DELTA: usize = 3;
-const SPEEDSTER_STEP_PER_DELTA: usize = 2;
-const SPEEDSTER_BULLET_PER_DELTA: usize = 2;
+const ALIEN_STEP_PER_DELTA: f64 = 1.0;
+const BULLET_STEP_PER_DELTA: f64 = 2.0;
+const SHOOTER_STEP_PER_DELTA: f64 = 3.0;
+const SPEEDSTER_STEP_PER_DELTA: f64 = 2.0;
+const SPEEDSTER_BULLET_PER_DELTA: f64 = 2.0;
 
-struct SpaceInvaders {
-    key: Option<String>,
-    engine: Rc<RefCell<Engine>>,
-    aliens: Aliens,
-    shooter: Shooter,
-    bullets: Vec<Bullet>,
-    speedster: Speedster,
-    speedster_bullets: Vec<SpeedsterBullet>,
+//fn main() -> Result<(), Error> {
+//    //terminal::enable_raw_mode();
+//    utils::clear();
+//    let mut banner: String = "Welcome to Space Invaders".to_string();
+//    let mut game = SpaceInvaders::new()?;
+//    game.set_up();
+//    loop {
+//        game.handle_input();
+//        if let Err(msg) = game.update() {
+//            banner = msg.to_string();
+//        }
+//        println!("{}{}", banner, " ".repeat(15));
+//        game.output();
+//        if game.over() {
+//            break;
+//        }
+//        utils::sleep(DELTA_TIME);
+//        utils::refresh();
+//    }
+//    //terminal::disable_raw_mode();
+//    Ok(())
+//}
+
+fn left_to_right(
+    plane_dimensions: (usize, usize),
+    delta_time: f64,
+    velocity: f64,
+) -> Result<(), Error> {
+    utils::clear();
+    let engine = Engine::new(plane_dimensions).as_rc();
+    let height = { engine.borrow().height };
+    let (width, height) = {
+        let eng = engine.borrow();
+        (eng.width, eng.height)
+    };
+    let position = {
+        vec![
+            (0, height / 2),
+            (0, height / 2 - 1),
+            (1, height / 2),
+            (1, height / 2 - 1),
+        ]
+    };
+    let mut square = Sprite::new(engine.clone(), position, velocity)?;
+    square.spawn()?;
+    loop {
+        match square.move_right() {
+            Ok(_) => (),
+            Err(err) => {
+                print!("{}", engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR)); // outputs the
+                                                                                    // last state of the game
+                break;
+            }
+        }
+        print!("{}", engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR));
+        utils::sleep(delta_time);
+        utils::refresh();
+        //utils::clear();
+    }
+    Ok(())
 }
 
-impl SpaceInvaders {
-    fn new() -> Result<Self, Error> {
-        let PLANE_DIMENSIONS: (usize, usize) = {
-            let (x, y) = terminal::size().unwrap();
-            (x as usize - 2, y as usize - 3)
-        };
-        let engine = Engine::new(PLANE_DIMENSIONS).as_rc();
-        Ok(Self {
-            key: None,
-            aliens: Aliens::new(engine.clone(), ALIEN_COUNT, ALIEN_STEP_PER_DELTA)?,
-            shooter: Shooter::new(engine.clone(), SHOOTER_STEP_PER_DELTA)?,
-            speedster: Speedster::new(engine.clone(), SPEEDSTER_STEP_PER_DELTA)?,
-            speedster_bullets: Vec::new(),
-            engine,
-            bullets: Vec::new(),
-        })
+fn right_to_left(
+    plane_dimensions: (usize, usize),
+    delta_time: f64,
+    velocity: f64,
+) -> Result<(), Error> {
+    utils::clear();
+    let engine = Engine::new(plane_dimensions).as_rc();
+    let height = { engine.borrow().height };
+    let (width, height) = {
+        let eng = engine.borrow();
+        (eng.width, eng.height)
+    };
+    let position = {
+        vec![
+            (width - 1, height / 2),
+            (width - 1, height / 2 - 1),
+            (width - 2, height / 2),
+            (width - 2, height / 2 - 1),
+        ]
+    };
+    let mut square = Sprite::new(engine.clone(), position, velocity)?;
+    square.spawn()?;
+    loop {
+        match square.move_left() {
+            Ok(_) => (),
+            Err(err) => {
+                print!("{}", engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR));
+                break;
+            }
+        }
+        print!("{}", engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR));
+        utils::sleep(delta_time);
+        utils::refresh();
     }
+    Ok(())
+}
 
-    fn set_up(&mut self) {
-        self.shooter.spawn();
-        self.aliens.spawn();
-        self.speedster.spawn();
+fn top_to_bottom(
+    plane_dimensions: (usize, usize),
+    delta_time: f64,
+    velocity: f64,
+) -> Result<(), Error> {
+    utils::clear();
+    let engine = Engine::new(plane_dimensions).as_rc();
+    let height = { engine.borrow().height };
+    let (width, height) = {
+        let eng = engine.borrow();
+        (eng.width, eng.height)
+    };
+    let position = {
+        vec![
+            (width / 2, 0),
+            (width / 2 - 1, 0),
+            (width / 2, 1),
+            (width / 2 - 1, 1),
+        ]
+    };
+    let mut square = Sprite::new(engine.clone(), position, velocity)?;
+    square.spawn()?;
+    loop {
+        match square.move_down() {
+            Ok(_) => (),
+            Err(err) => {
+                //eprintln!("{:#?}", square);
+                print!("{}", engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR));
+                break;
+            }
+        }
+        print!("{}", engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR));
+        utils::sleep(delta_time);
+        utils::refresh();
+        //utils::clear();
     }
+    Ok(())
+}
 
-    fn handle_input(&mut self) {
-        self.key = get_key();
+fn bottom_to_top(
+    plane_dimensions: (usize, usize),
+    delta_time: f64,
+    velocity: f64,
+) -> Result<(), Error> {
+    utils::clear();
+    let engine = Engine::new(plane_dimensions).as_rc();
+    let height = { engine.borrow().height };
+    let (width, height) = {
+        let eng = engine.borrow();
+        (eng.width, eng.height)
+    };
+    let position = {
+        vec![
+            (width / 2, height - 1),
+            (width / 2 - 1, height - 1),
+            (width / 2, height - 2),
+            (width / 2 - 1, height - 2),
+        ]
+    };
+    let mut square = Sprite::new(engine.clone(), position, velocity)?;
+    square.spawn()?;
+    loop {
+        match square.move_up() {
+            Ok(_) => (),
+            Err(err) => {
+                println!("{}", engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR));
+                break;
+            }
+        }
+        print!("{}", engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR));
+        utils::sleep(delta_time);
+        utils::refresh();
+        //utils::clear();
     }
-
-    /// I want to procure moving objects first before handling user input
-    fn update(&mut self) -> Result<(), String> {
-        let mut result: Result<(), String> = Ok(());
-        {
-            // moving bullets
-            //for bullet in self.bullets.iter_mut() {
-            let mut collided_coordinate_if_any: Option<Coordinate> = None;
-            let bullets_len = self.bullets.len();
-            for i in 0..bullets_len {
-                let mut bullet = &mut self.bullets[i];
-                let _result = bullet.step();
-                if let Err(error) = _result {
-                    //result = Err(error.diagnosis());
-                    // I think I want to return early
-                    result.clone()?;
-                } else if let Ok(State::Collided(coordinate)) = _result {
-                    // The bullet hit something
-                    collided_coordinate_if_any = Some(coordinate);
-                    bullet.destroy();
-                    break;
-                }
-            }
-            // checking for bullet collisions
-            if let Some(coordinate) = collided_coordinate_if_any {
-                let _ = utils::check_collision_and_destroy(
-                    coordinate,
-                    &mut self.aliens,
-                    &mut self.speedster,
-                    &mut self.bullets,
-                );
-            }
-        }
-        {
-            // moving player
-            if let Some(ref key) = self.key {
-                if let Err(error) = self.shooter.step(key) {
-                    return Err(error.diagnosis());
-                }
-            }
-        }
-        {
-            // moving aliens
-            let result = self.aliens.step();
-            if let Ok(State::Collided(coordinate)) = result {
-                for bullet in self.bullets.iter_mut() {
-                    if bullet.contains(coordinate) {
-                        bullet.destroy();
-                        break;
-                    }
-                }
-            } else if result.is_err() {
-                return Err(result.unwrap_err().diagnosis());
-            }
-        }
-        {
-            // moving speedster
-            if self.speedster.is_destroyed() {
-                self.speedster.respawn();
-            }
-            let result = self.speedster.step();
-            if let Ok(State::Collided(coordinate)) = result {
-                for bullet in &mut self.bullets {
-                    if bullet.contains(coordinate) {
-                        bullet.destroy();
-                        self.speedster.destroy();
-                        break;
-                    }
-                }
-            } else if result.is_err() {
-                return Err(result.unwrap_err().diagnosis());
-            }
-        }
-        {
-            // spawning speedster bullets
-            match SpeedsterBullet::new(
-                self.engine.clone(),
-                vec![self.speedster.tail()],
-                SPEEDSTER_BULLET_PER_DELTA,
-            ) {
-                Ok(sprite) => self.speedster_bullets.push(sprite),
-                Err(error) => return Err(error.diagnosis()),
-            }
-        }
-        {
-            // moving speedster bullets
-            for bullet in self.speedster_bullets.iter_mut() {
-                if let Err(error) = bullet.step() {
-                    return Err(error.diagnosis());
-                }
-            }
-        }
-        {
-            // checking for new bullet
-            if self.key == Some(" ".to_string()) {
-                let position = self.shooter.head();
-                match Bullet::new(self.engine.clone(), vec![position], BULLET_STEP_PER_DELTA) {
-                    Ok(mut bullet) => {
-                        let _ = bullet.spawn();
-                        self.bullets.push(bullet);
-                    }
-                    Err(err) => return Err(err.diagnosis()),
-                }
-            }
-        }
-        result
-    }
-
-    fn output(&self) {
-        print!(
-            "\n{}",
-            self.engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR)
-        );
-    }
-
-    fn over(&self) -> bool {
-        if let Some(ref k) = get_key() {
-            return k == "esc";
-        }
-        false
-    }
+    Ok(())
 }
 
 fn main() -> Result<(), Error> {
-    //terminal::enable_raw_mode();
-    utils::clear();
-    let mut banner: String = "Welcome to Space Invaders".to_string();
-    let mut game = SpaceInvaders::new()?;
-    game.set_up();
-    loop {
-        game.handle_input();
-        if let Err(msg) = game.update() {
-            banner = msg.to_string();
-        }
-        println!("{}{}", banner, " ".repeat(15));
-        game.output();
-        if game.over() {
-            break;
-        }
-        utils::sleep(DELTA_TIME);
-        utils::refresh();
-    }
-    //terminal::disable_raw_mode();
+    //let plane_dimensions = (100, 10);
+    //let plane_dimensions = (10, 25);
+    let plane_dimensions = (50, 20);
+    let delta_time = unsafe { DELTA_TIME };
+    let velocity = 10.9231231f64;
+    left_to_right(plane_dimensions, delta_time, velocity)?;
+    top_to_bottom(plane_dimensions, delta_time, velocity)?;
+    right_to_left(plane_dimensions, delta_time, velocity)?;
+    bottom_to_top(plane_dimensions, delta_time, velocity)?;
     Ok(())
 }
