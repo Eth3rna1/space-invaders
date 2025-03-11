@@ -22,7 +22,7 @@ use crate::{
 use std::cell::RefCell;
 use std::rc::Rc;
 
-struct SpaceInvaders {
+pub struct SpaceInvaders {
     key: Option<String>,
     engine: Rc<RefCell<Engine>>,
     aliens: Aliens,
@@ -33,7 +33,7 @@ struct SpaceInvaders {
 }
 
 impl SpaceInvaders {
-    fn new() -> Result<Self, Error> {
+    pub fn new() -> Result<Self, Error> {
         //let PLANE_DIMENSIONS: (usize, usize) = {
         //    let (x, y) = terminal::size().unwrap();
         //    (x as usize - 2, y as usize - 3)
@@ -50,18 +50,18 @@ impl SpaceInvaders {
         })
     }
 
-    fn set_up(&mut self) {
+    pub fn set_up(&mut self) {
         self.shooter.spawn();
         self.aliens.spawn();
         //self.speedster.spawn();
     }
 
-    fn handle_input(&mut self) {
+    pub fn handle_input(&mut self) {
         self.key = get_key();
     }
 
     /// I want to procure moving objects first before handling user input
-    fn update(&mut self) -> Result<(), String> {
+    pub fn update(&mut self) -> Result<(), String> {
         let mut result: Result<(), String> = Ok(());
         {
             // moving bullets
@@ -167,14 +167,14 @@ impl SpaceInvaders {
         result
     }
 
-    fn output(&self) {
+    pub fn output(&self) {
         print!(
             "\n{}",
             self.engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR)
         );
     }
 
-    fn over(&self) -> bool {
+    pub fn over(&self) -> bool {
         if let Some(ref k) = get_key() {
             return k == "esc";
         }

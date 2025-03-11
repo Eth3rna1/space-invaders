@@ -22,7 +22,6 @@ pub enum State {
 /// A group of pixels
 #[derive(Debug, Clone)]
 pub struct Sprite {
-    collisions: bool,
     pub(crate) engine: Rc<RefCell<Engine>>,
     pub(crate) coordinates: Vec<Coordinate>,
     pub(crate) velocity: f64,
@@ -66,7 +65,6 @@ impl Sprite {
         }
         let bounding_box = BoundingBox::from(&coordinates);
         Ok(Self {
-            collisions: true,
             engine,
             velocity,
             coordinates,
@@ -75,12 +73,6 @@ impl Sprite {
             exact_x: bounding_box.far_left as f64,
             exact_y: bounding_box.far_top as f64,
         })
-    }
-
-    /// Checks for collisions with other pixels whose pixel state is on
-    pub fn set_collisions(mut self, boolean: bool) -> Self {
-        self.collisions = boolean;
-        self
     }
 
     pub fn is_destroyed(&self) -> bool {
@@ -169,6 +161,15 @@ impl Sprite {
             step
         };
         {
+            // collision detection
+            for col in self.bounding_box.far_right..=self.bounding_box.far_left {
+                let future_coordinate = (col, self.bounding_box.far_top + step);
+                if engine.collisions() && engine.is_on(&future_coordinate) {
+                    return Ok(State::Collided(future_coordinate));
+                }
+            }
+        }
+        {
             // reseting the current position
             for coordinate in self.coordinates.iter() {
                 engine.reset(coordinate);
@@ -216,12 +217,43 @@ impl Sprite {
         }
         // checking if the step leads the sprite out of boundries, if so, a new step is assigned
         let step = if self.bounding_box.far_left as i32 - step as i32 <= 0 {
+            //              |
+            //              |
+            //              |
+            //  (0th index) 0            #
+            //              |            ^
+            //              |          Pixel within the X axis
+            //              |
+            //              -------------------------------
+            //              0    1   2   3
+            //
+            // Assigning the new step with the current X position
+            // leads to this equation:
+            //
+            //          0 = x - x
+            //
+            //  x is the number that represents the sprites
+            //  position within the X axis
+            //
+            //  Essentially, since the sprite is destined to go out of boundries
+            //  I want to at least make the X position be 0. How am I going to do that?
+            //  As shown by the equation, subtracting the X position by itself, the
+            //  value will cancel out and will equal 0.
             let new_step = self.bounding_box.far_left;
             self.exact_x = self.bounding_box.far_left as f64;
             new_step
         } else {
             step
         };
+        {
+            // collision detection
+            for row in self.bounding_box.far_top..=self.bounding_box.far_bottom {
+                let future_coordinate = (self.bounding_box.far_left - step, row);
+                if engine.collisions() && engine.is_on(&future_coordinate) {
+                    return Ok(State::Collided(future_coordinate));
+                }
+            }
+        }
         {
             // reseting the current position
             for coordinate in self.coordinates.iter() {
@@ -278,6 +310,15 @@ impl Sprite {
             step
         };
         {
+            // collision detection; looking into the future step if it is populated
+            for row in self.bounding_box.far_top..=self.bounding_box.far_bottom {
+                let future_coordinate = (self.bounding_box.far_right + step, row);
+                if engine.collisions() && engine.is_on(&future_coordinate) {
+                    return Ok(State::Collided(future_coordinate));
+                }
+            }
+        }
+        {
             // reseting the current position
             for coordinate in self.coordinates.iter() {
                 engine.reset(coordinate);
@@ -332,6 +373,15 @@ impl Sprite {
         } else {
             step
         };
+        {
+            // collision detection
+            for col in self.bounding_box.far_right..=self.bounding_box.far_left {
+                let future_coordinate = (col, self.bounding_box.far_bottom + step);
+                if engine.collisions() && engine.is_on(&future_coordinate) {
+                    return Ok(State::Collided(future_coordinate));
+                }
+            }
+        }
         {
             // reseting the current position
             for coordinate in self.coordinates.iter() {

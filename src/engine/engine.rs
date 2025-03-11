@@ -19,6 +19,7 @@ pub enum PixelState {
 
 #[derive(Debug, Clone)]
 pub struct Engine {
+    collisions: bool,
     pub height: usize,
     pub width: usize,
     matrix: Vec<Vec<PixelState>>,
@@ -35,10 +36,20 @@ impl Engine {
             })
             .collect();
         Self {
+            collisions: true,
             height,
             width,
             matrix,
         }
+    }
+
+    pub fn set_collisions(mut self, v: bool) -> Self {
+        self.collisions = v;
+        self
+    }
+
+    pub fn collisions(&self) -> bool {
+        self.collisions
     }
 
     pub fn as_rc(self) -> Rc<RefCell<Self>> {
