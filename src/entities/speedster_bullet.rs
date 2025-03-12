@@ -28,8 +28,8 @@ impl SpeedsterBullet {
     }
 
     /// The speedster bullet is the only sprite that can overlap
-    pub fn step(&mut self) -> Result<State, Error> {
-        let result = self.sprite.move_down();
+    pub fn step(&mut self, delta_time: f64) -> Result<State, Error> {
+        let result = self.sprite.move_down(delta_time);
         if let Err(ref error) = result {
             if error.kind() == ErrorKind::OutOfBounds {
                 self.sprite.destroy();

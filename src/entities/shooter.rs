@@ -38,13 +38,13 @@ impl Shooter {
         //self.has_been_spawned = true;
     }
 
-    pub fn step(&mut self, key: &str) -> Result<State, Error> {
+    pub fn step(&mut self, key: &str, delta_time: f64) -> Result<State, Error> {
         //if !self.has_been_spawned {
         //    return Err(Error::new(ErrorKind::Other, "Shooter has not been spawned"))
         //}
         match key {
-            "right" => self.sprite.move_right(),
-            "left" => self.sprite.move_left(),
+            "right" => self.sprite.move_right(delta_time),
+            "left" => self.sprite.move_left(delta_time),
             // the following line is needed so the player can actually shoot
             " " => Ok(State::Null),
             _ => Err(Error::new(ErrorKind::Other, "Unknown key was pressed")),

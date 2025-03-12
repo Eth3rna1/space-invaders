@@ -9,7 +9,7 @@ mod engine;
 mod entities;
 mod errors;
 mod listener;
-mod space_invaders;
+//mod space_invaders;
 mod utils;
 
 use crossterm::terminal;
@@ -19,7 +19,6 @@ use engine::{
 };
 use errors::{Error, ErrorKind};
 use listener::{get_key, key_pressed};
-use space_invaders::SpaceInvaders;
 use std::cell::RefCell;
 use std::process::exit;
 use std::rc::Rc;
@@ -88,7 +87,7 @@ fn left_to_right(
     let mut square = Sprite::new(engine.clone(), position, velocity)?;
     square.spawn()?;
     loop {
-        match square.move_right() {
+        match square.move_right(delta_time) {
             Ok(_) => (),
             Err(err) => {
                 print!("{}", engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR)); // outputs the
@@ -127,7 +126,7 @@ fn right_to_left(
     let mut square = Sprite::new(engine.clone(), position, velocity)?;
     square.spawn()?;
     loop {
-        match square.move_left() {
+        match square.move_left(delta_time) {
             Ok(_) => (),
             Err(err) => {
                 print!("{}", engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR));
@@ -164,7 +163,7 @@ fn top_to_bottom(
     let mut square = Sprite::new(engine.clone(), position, velocity)?;
     square.spawn()?;
     loop {
-        match square.move_down() {
+        match square.move_down(delta_time) {
             Ok(_) => (),
             Err(err) => {
                 //eprintln!("{:#?}", square);
@@ -203,7 +202,7 @@ fn bottom_to_top(
     let mut square = Sprite::new(engine.clone(), position, velocity)?;
     square.spawn()?;
     loop {
-        match square.move_up() {
+        match square.move_up(delta_time) {
             Ok(_) => (),
             Err(err) => {
                 println!("{}", engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR));
@@ -245,7 +244,7 @@ fn left_to_right_with_obstacle(p: (usize, usize), d: f64, v: f64) -> Result<(), 
         //eng.spawn((width - (width / 5) + 4, height / 2));
     }
     loop {
-        match square.move_right() {
+        match square.move_right(d) {
             Ok(state) => {
                 println!("{:?}", state);
                 match state {

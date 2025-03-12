@@ -75,7 +75,7 @@ impl Aliens {
         self.sprites.iter_mut()
     }
 
-    pub fn step(&mut self) -> Result<State, Error> {
+    pub fn step(&mut self, delta_time: f64) -> Result<State, Error> {
         match self.direction {
             Direction::Right => {
                 if self.sprites[self.sprites.len() - 1].bounding_box.far_right == self.width - 1 {
@@ -86,7 +86,7 @@ impl Aliens {
                     ));
                 }
                 for sprite in self.sprites.iter_mut() {
-                    let result = sprite.move_right();
+                    let result = sprite.move_right(delta_time);
                     if let Ok(State::Collided(_)) = result {
                         sprite.destroy(); // automatically dies
                     }
@@ -101,7 +101,7 @@ impl Aliens {
                     ));
                 }
                 for sprite in self.sprites.iter_mut() {
-                    let _ = sprite.move_left(); // collision logic has not been implemented yet
+                    let _ = sprite.move_left(delta_time); // collision logic has not been implemented yet
                 }
             }
         }

@@ -3,7 +3,6 @@ use crate::engine::Coordinate;
 use crate::engine::Engine;
 use crate::errors::{Error, ErrorKind};
 
-use crate::DELTA_TIME;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
@@ -123,7 +122,7 @@ impl Sprite {
         Ok(State::Spawned)
     }
 
-    pub fn move_up(&mut self) -> Result<State, Error> {
+    pub fn move_up(&mut self, delta_time: f64) -> Result<State, Error> {
         let mut engine = self.engine.borrow_mut();
         {
             // error checking if the sprite is already touching the boundry
@@ -137,7 +136,7 @@ impl Sprite {
         // calculating the EXACT floating point offset number. In other words, the EXACT step;
         // the code following the `offset` variable, is going to work with rounding
         // such number
-        let offset: f64 = unsafe { self.velocity * DELTA_TIME };
+        let offset: f64 = self.velocity * delta_time;
         // obtaining the difference between the new X position and the current X position
         let step: usize = (self.exact_y + offset) as usize - self.exact_y as usize;
         self.exact_y -= offset;
@@ -187,7 +186,7 @@ impl Sprite {
         Ok(State::Moved)
     }
 
-    pub fn move_left(&mut self) -> Result<State, Error> {
+    pub fn move_left(&mut self, delta_time: f64) -> Result<State, Error> {
         let mut engine = self.engine.borrow_mut();
         {
             // error checking if the sprite is already touching the boundry
@@ -201,7 +200,7 @@ impl Sprite {
         // calculating the EXACT floating point offset number. In other words, the EXACT step;
         // the code following the `offset` variable, is going to work with rounding
         // such number
-        let offset: f64 = unsafe { self.velocity * DELTA_TIME };
+        let offset: f64 = self.velocity * delta_time;
         // obtaining the difference between the new X position and the current X position
         let step: usize = (self.exact_x + offset) as usize - self.exact_x as usize;
         self.exact_x -= offset;
@@ -272,7 +271,7 @@ impl Sprite {
         Ok(State::Moved)
     }
 
-    pub fn move_right(&mut self) -> Result<State, Error> {
+    pub fn move_right(&mut self, delta_time: f64) -> Result<State, Error> {
         let mut engine = self.engine.borrow_mut();
         {
             // error checking if the sprite is already touching the boundry
@@ -286,7 +285,7 @@ impl Sprite {
         // calculating the EXACT floating point offset number. In other words, the EXACT step;
         // the code following the `offset` variable, is going to work with rounding
         // such number
-        let offset: f64 = unsafe { self.velocity * DELTA_TIME };
+        let offset: f64 = self.velocity * delta_time;
         // obtaining the difference between the new X position and the current X position
         let step: usize = (self.exact_x + offset) as usize - self.exact_x as usize;
         self.exact_x += offset;
@@ -336,7 +335,7 @@ impl Sprite {
         Ok(State::Moved)
     }
 
-    pub fn move_down(&mut self) -> Result<State, Error> {
+    pub fn move_down(&mut self, delta_time: f64) -> Result<State, Error> {
         let mut engine = self.engine.borrow_mut();
         {
             // error checking if the sprite is already touching the boundry
@@ -350,7 +349,7 @@ impl Sprite {
         // calculating the EXACT floating point offset number. In other words, the EXACT step;
         // the code following the `offset` variable, is going to work with rounding
         // such number
-        let offset: f64 = unsafe { self.velocity * DELTA_TIME };
+        let offset: f64 = self.velocity * delta_time;
         // obtaining the difference between the new X position and the current X position
         let step: usize = (self.exact_y + offset) as usize - self.exact_y as usize;
         self.exact_y += offset;

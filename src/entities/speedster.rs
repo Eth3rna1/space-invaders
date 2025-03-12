@@ -48,8 +48,8 @@ impl Speedster {
         Ok(State::Spawned)
     }
 
-    pub fn step(&mut self) -> Result<State, Error> {
-        let result = self.sprite.move_left();
+    pub fn step(&mut self, delta_time: f64) -> Result<State, Error> {
+        let result = self.sprite.move_left(delta_time);
         if result.is_err() && result.unwrap_err().kind() == ErrorKind::OutOfBounds {
             self.sprite.destroy();
             return Ok(State::Destroyed);
