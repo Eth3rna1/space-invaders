@@ -1,18 +1,6 @@
 //! Implementing a bounding box
 use crate::engine::Coordinate;
 
-// DEPRECATED
-//fn _sort_coordinates(coordinates: &mut [Coordinate]) {
-//    // Sorting by x first, then by y
-//    coordinates.sort_by(|a, b| {
-//        if a.0 == b.0 {
-//            a.1.cmp(&b.1) // Compare x-coordinates if y-coordinates are equal
-//        } else {
-//            a.0.cmp(&b.0) // Compare y-coordinates if different
-//        }
-//    });
-//}
-
 #[derive(Debug, Clone, Copy)]
 pub struct BoundingBox {
     pub far_top: usize,

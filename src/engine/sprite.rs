@@ -8,7 +8,7 @@ use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
 /// State of the sprite after a method has been called
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum State {
     Collided(Coordinate),
     Destroyed,
@@ -23,8 +23,10 @@ pub enum State {
 pub struct Sprite {
     pub(crate) engine: Rc<RefCell<Engine>>,
     pub(crate) coordinates: Vec<Coordinate>,
+    // one velocity for both axises
     pub(crate) velocity: f64,
     pub(crate) bounding_box: BoundingBox,
+    is_spawned: bool,
     is_destroyed: bool,
     /// The pin point floating number X position of the sprite
     exact_x: f64,
@@ -68,6 +70,7 @@ impl Sprite {
             velocity,
             coordinates,
             bounding_box,
+            is_spawned: false,
             is_destroyed: false,
             exact_x: bounding_box.far_left as f64,
             exact_y: bounding_box.far_top as f64,
@@ -78,8 +81,66 @@ impl Sprite {
         self.is_destroyed
     }
 
+    pub fn is_spawned(&self) -> bool {
+        self.is_spawned
+    }
+
+    pub fn far_top(&self) -> usize {
+        self.bounding_box.far_top
+    }
+
+    pub fn far_left(&self) -> usize {
+        self.bounding_box.far_left
+    }
+
+    pub fn far_right(&self) -> usize {
+        self.bounding_box.far_right
+    }
+
+    pub fn far_bottom(&self) -> usize {
+        self.bounding_box.far_bottom
+    }
+
     pub fn contains(&self, coordinate: Coordinate) -> bool {
         self.coordinates.contains(&coordinate)
+    }
+
+    pub fn velocity(&self) -> f64 {
+        self.velocity
+    }
+
+    pub fn exact_x(&self) -> f64 {
+        self.exact_x
+    }
+
+    pub fn offset_exact_x(&mut self, offset: f64) {
+        self.exact_x += offset;
+    }
+
+    pub fn exact_y(&self) -> f64 {
+        self.exact_y
+    }
+
+    pub fn offset_exact_y(&mut self, offset: f64) {
+        self.exact_y += offset;
+    }
+
+    /// A function that looks into the future next left position
+    pub fn next_step_left(&self, delta_time: f64) -> usize {
+        (self.exact_x - self.velocity * delta_time) as usize
+    }
+
+    /// A function that looks into the future next right position
+    pub fn next_step_right(&self, delta_time: f64) -> usize {
+        (self.exact_x + self.velocity * delta_time) as usize
+    }
+
+    pub fn next_step_up(&self, delta_time: f64) -> usize {
+        (self.exact_y - self.velocity * delta_time) as usize
+    }
+
+    pub fn next_step_down(&self, delta_time: f64) -> usize {
+        (self.exact_y + self.velocity * delta_time) as usize
     }
 
     pub fn pop(&mut self, coordinate: Coordinate) -> Result<State, Error> {
@@ -105,6 +166,7 @@ impl Sprite {
 
     pub fn spawn(&mut self) -> Result<State, Error> {
         self.is_destroyed = false;
+        self.is_spawned = true;
         let mut eng = self.engine.borrow_mut();
         {
             if self.coordinates.iter().any(|coor| eng.is_on(coor)) {
@@ -155,30 +217,34 @@ impl Sprite {
             // reassigning to its starting position
             let new_step = self.bounding_box.far_top;
             self.exact_y = self.bounding_box.far_top as f64;
+            //self.exact_y -= self.exact_y; // 0
             new_step
         } else {
             step
         };
-        {
+        if engine.collisions() {
             // collision detection
             for col in self.bounding_box.far_right..=self.bounding_box.far_left {
-                let future_coordinate = (col, self.bounding_box.far_top + step);
-                if engine.collisions() && engine.is_on(&future_coordinate) {
+                let future_coordinate = (col, self.bounding_box.far_top - step);
+                if engine.is_on(&future_coordinate) {
+                    self.exact_y += offset; // reseting the offset
                     return Ok(State::Collided(future_coordinate));
                 }
             }
         }
-        {
+        if self.is_spawned {
             // reseting the current position
             for coordinate in self.coordinates.iter() {
                 engine.reset(coordinate);
             }
         }
         {
-            // drawing the new position
+            // drawing or assigning the new position
             for coordinate in self.coordinates.iter_mut() {
                 let new = (coordinate.0, coordinate.1 - step);
-                engine.spawn(new);
+                if self.is_spawned {
+                    engine.spawn(new);
+                }
                 *coordinate = new;
             }
             self.bounding_box.decrease_y(step);
@@ -240,20 +306,22 @@ impl Sprite {
             //  value will cancel out and will equal 0.
             let new_step = self.bounding_box.far_left;
             self.exact_x = self.bounding_box.far_left as f64;
+            //self.exact_x -= self.exact_x; // 0
             new_step
         } else {
             step
         };
-        {
+        if engine.collisions() {
             // collision detection
             for row in self.bounding_box.far_top..=self.bounding_box.far_bottom {
                 let future_coordinate = (self.bounding_box.far_left - step, row);
-                if engine.collisions() && engine.is_on(&future_coordinate) {
+                if engine.is_on(&future_coordinate) {
+                    self.exact_x += offset; // reseting the offset
                     return Ok(State::Collided(future_coordinate));
                 }
             }
         }
-        {
+        if self.is_spawned {
             // reseting the current position
             for coordinate in self.coordinates.iter() {
                 engine.reset(coordinate);
@@ -263,7 +331,9 @@ impl Sprite {
             // drawing the new position
             for coordinate in self.coordinates.iter_mut() {
                 let new = (coordinate.0 - step, coordinate.1);
-                engine.spawn(new);
+                if self.is_spawned {
+                    engine.spawn(new);
+                }
                 *coordinate = new;
             }
             self.bounding_box.decrease_x(step);
@@ -303,21 +373,23 @@ impl Sprite {
         let step = if self.bounding_box.far_right + step >= engine.width {
             let new_step = engine.width - self.bounding_box.far_right - 1;
             // + new step because the coordinates haven't been updated yet
-            self.exact_x = (self.bounding_box.far_left + new_step) as f64;
+            //self.exact_x = (self.bounding_box.far_left + new_step) as f64;
+            self.exact_x = (self.bounding_box.far_right + new_step) as f64;
             new_step
         } else {
             step
         };
-        {
+        if engine.collisions() {
             // collision detection; looking into the future step if it is populated
             for row in self.bounding_box.far_top..=self.bounding_box.far_bottom {
                 let future_coordinate = (self.bounding_box.far_right + step, row);
-                if engine.collisions() && engine.is_on(&future_coordinate) {
+                if engine.is_on(&future_coordinate) {
+                    self.exact_x -= offset; // reseting the offset
                     return Ok(State::Collided(future_coordinate));
                 }
             }
         }
-        {
+        if self.is_spawned {
             // reseting the current position
             for coordinate in self.coordinates.iter() {
                 engine.reset(coordinate);
@@ -327,7 +399,9 @@ impl Sprite {
             // drawing the new position
             for coordinate in self.coordinates.iter_mut() {
                 let new = (coordinate.0 + step, coordinate.1);
-                engine.spawn(new);
+                if self.is_spawned {
+                    engine.spawn(new);
+                }
                 *coordinate = new;
             }
             self.bounding_box.increase_x(step);
@@ -372,16 +446,17 @@ impl Sprite {
         } else {
             step
         };
-        {
+        if engine.collisions() {
             // collision detection
             for col in self.bounding_box.far_right..=self.bounding_box.far_left {
                 let future_coordinate = (col, self.bounding_box.far_bottom + step);
-                if engine.collisions() && engine.is_on(&future_coordinate) {
+                if engine.is_on(&future_coordinate) {
+                    self.exact_y += offset; // reseting the offset
                     return Ok(State::Collided(future_coordinate));
                 }
             }
         }
-        {
+        if self.is_spawned {
             // reseting the current position
             for coordinate in self.coordinates.iter() {
                 engine.reset(coordinate);
@@ -391,10 +466,81 @@ impl Sprite {
             // drawing the new position
             for coordinate in self.coordinates.iter_mut() {
                 let new = (coordinate.0, coordinate.1 + step);
-                engine.spawn(new);
+                if self.is_spawned {
+                    engine.spawn(new);
+                }
                 *coordinate = new;
             }
             self.bounding_box.increase_y(step);
+        }
+        Ok(State::Moved)
+    }
+
+    pub fn move_relative_x(&mut self, step: i32) -> Result<State, Error> {
+        if step == 0 {
+            return Ok(State::Null);
+        }
+        let mut engine = self.engine.borrow_mut();
+        {
+            // checking for boundries
+            if self.bounding_box.far_left as i32 + step < 0 && step < 0 {
+                return Err(Error::new(
+                    ErrorKind::OutOfBounds,
+                    format!("Can't move sprite `{:?}` further left", self as *const Self),
+                ));
+            }
+            if self.bounding_box.far_right as i32 + step > (engine.width - 1) as i32 && step > 0 {
+                return Err(Error::new(
+                    ErrorKind::OutOfBounds,
+                    format!(
+                        "Can't move sprite `{:?}` further right",
+                        self as *const Self
+                    ),
+                ));
+            }
+        }
+        if engine.collisions() {
+            // checking for collisions
+            if step > 0 {
+                // positive step, moving right
+                for row in self.bounding_box.far_top..=self.bounding_box.far_bottom {
+                    let future_coordinate: Coordinate =
+                        (self.bounding_box.far_right + step as usize, row);
+                    if engine.is_on(&future_coordinate) {
+                        return Ok(State::Collided(future_coordinate));
+                    }
+                }
+            } else {
+                // negative step, left movement
+                for row in self.bounding_box.far_top..=self.bounding_box.far_bottom {
+                    let future_coordinate: Coordinate =
+                        ((self.bounding_box.far_left as i32 + step) as usize, row);
+                    if engine.is_on(&future_coordinate) {
+                        return Ok(State::Collided(future_coordinate));
+                    }
+                }
+            }
+        }
+        if self.is_spawned {
+            // reseting the current position
+            for coordinate in self.coordinates.iter() {
+                engine.reset(coordinate);
+            }
+        }
+        {
+            // drawing the new position
+            for coordinate in self.coordinates.iter_mut() {
+                let new = ((coordinate.0 as i32 + step) as usize, coordinate.1);
+                if self.is_spawned {
+                    engine.spawn(new);
+                }
+                *coordinate = new;
+            }
+            if step > 0 {
+                self.bounding_box.increase_x(step as usize);
+            } else {
+                self.bounding_box.decrease_x(step.abs() as usize);
+            }
         }
         Ok(State::Moved)
     }
@@ -405,6 +551,7 @@ impl Sprite {
             engine.reset(coor);
         }
         self.is_destroyed = true;
+        self.is_spawned = false;
         State::Destroyed
     }
 }

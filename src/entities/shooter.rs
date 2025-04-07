@@ -1,62 +1,49 @@
-/*
-    Shooter Sprite implementation
-*/
-use crate::engine::sprite::{Sprite, State};
-use crate::engine::{Coordinate, Engine};
-use crate::entities::Bullet;
+use crate::engine::sprite::Sprite;
+use crate::engine::sprite::State;
+use crate::engine::Coordinate;
+use crate::engine::Engine;
 use crate::errors::{Error, ErrorKind};
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
+#[derive(Debug, Clone)]
 pub struct Shooter {
     sprite: Sprite,
-    //has_been_spawned: bool
 }
 
 impl Shooter {
-    pub fn new(engine: Rc<RefCell<Engine>>, velocity: f64) -> Result<Self, Error> {
-        let position: Vec<Coordinate> = {
-            let eng = engine.borrow();
-            vec![
-                (eng.width / 2 + 2, eng.height - (eng.height / 7)),
-                (eng.width / 2 - 2, eng.height - (eng.height / 7)),
-                (eng.width / 2, eng.height - (eng.height / 7)),
-                (eng.width / 2, eng.height - (eng.height / 7) - 1),
-                (eng.width / 2 + 1, eng.height - (eng.height / 7)),
-                (eng.width / 2 - 1, eng.height - (eng.height / 7)),
-            ]
-        };
+    pub fn new(
+        engine: Rc<RefCell<Engine>>,
+        position: Vec<Coordinate>,
+        velocity: f64,
+    ) -> Result<Self, Error> {
         Ok(Self {
             sprite: Sprite::new(engine, position, velocity)?,
-            //has_been_spawned: false
         })
     }
 
     pub fn spawn(&mut self) {
         let _ = self.sprite.spawn();
-        //self.has_been_spawned = true;
     }
 
     pub fn step(&mut self, key: &str, delta_time: f64) -> Result<State, Error> {
-        //if !self.has_been_spawned {
-        //    return Err(Error::new(ErrorKind::Other, "Shooter has not been spawned"))
-        //}
         match key {
-            "right" => self.sprite.move_right(delta_time),
             "left" => self.sprite.move_left(delta_time),
-            // the following line is needed so the player can actually shoot
-            " " => Ok(State::Null),
-            _ => Err(Error::new(ErrorKind::Other, "Unknown key was pressed")),
-        }
+            "right" => self.sprite.move_right(delta_time),
+            _ => Ok(State::Null),
+        };
+        Ok(State::Null)
     }
 
     pub fn head(&self) -> Coordinate {
-        let far_left = self.sprite.bounding_box.far_left;
-        let far_right = self.sprite.bounding_box.far_right;
         (
-            far_left + ((far_right - far_left) / 2),
-            self.sprite.bounding_box.far_top - 2,
+            (self.sprite.far_right() - (self.sprite.far_right() - self.sprite.far_left()) / 2),
+            self.sprite.far_top() - 1,
         )
+    }
+
+    pub fn destroy(&mut self) {
+        self.sprite.destroy();
     }
 }

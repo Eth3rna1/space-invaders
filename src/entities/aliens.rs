@@ -1,15 +1,16 @@
-/*
-    Aliens Sprite implementation
-*/
-use crate::engine::sprite::{Sprite, State};
-use crate::engine::{Coordinate, Engine};
+use crate::engine::sprite::Sprite;
+use crate::engine::sprite::State;
+use crate::engine::Coordinate;
+use crate::engine::Engine;
 use crate::errors::{Error, ErrorKind};
+
+use crate::ALIEN_STEP_PER_DELTA;
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::slice::{Iter, IterMut};
+//use std::slice::IterMut;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Direction {
     Right,
     Left,
@@ -17,94 +18,179 @@ enum Direction {
 
 #[derive(Debug, Clone)]
 pub struct Aliens {
-    sprites: Vec<Sprite>,
+    aliens: Vec<Sprite>,
     direction: Direction,
+    velocity: f64,
     width: usize,
-    length: usize,
 }
 
 impl Aliens {
     pub fn new(engine: Rc<RefCell<Engine>>, count: usize, velocity: f64) -> Result<Self, Error> {
-        if count == 0 {
-            return Err(Error::new(ErrorKind::Other, "Alien count cannot be 0"));
-        }
-        let (width, length): (usize, usize) = {
+        let mut aliens: Vec<Sprite> = {
             let eng = engine.borrow();
-            (eng.width, eng.height)
-        };
-        let mut sprites: Vec<Sprite> = Vec::new();
-        let delta = width / count;
-        let mut c = 0;
-        for row in [4, 7, 10] {
-            for col in 0..count {
-                if c + delta >= width {
-                    break;
+            let mut collector: Vec<Sprite> = Vec::new();
+            let width = 4; // sprite width
+            let alien_width = 3 * width; // total width of each alien (3 sprites per alien)
+            let space_between = (eng.width - alien_width * count) / (count + 1); // Calculate space between aliens
+
+            // Loop to generate alien rows
+            for row in [4, 8, 12] {
+                let mut pointer = space_between; // Start the pointer at space_between
+                while pointer + alien_width <= eng.width {
+                    // Ensure we stay within bounds
+                    let position = vec![
+                        (pointer, row),
+                        (pointer + 1, row),
+                        (pointer + 2, row),
+                        (pointer, row + 1),
+                        (pointer + 1, row + 1),
+                        (pointer + 2, row + 1),
+                    ];
+                    collector.push(Sprite::new(engine.clone(), position, velocity)?);
+                    pointer += alien_width + space_between; // Update pointer to next position
+                                                            //pointer += space_between;
                 }
-                let position = vec![
-                    //(c, row),
-                    (c + 1, row),
-                    //(c + 2, row),
-                    (c, row - 1),
-                    //(c + 1, row - 1),
-                    (c + 2, row - 1),
-                ];
-                sprites.push(Sprite::new(engine.clone(), position, velocity)?);
-                c += delta;
             }
-            c = 0
-        }
+            collector
+        };
         Ok(Self {
-            sprites,
+            aliens,
+            velocity,
+            width: { engine.borrow().width },
             direction: Direction::Right,
-            width,
-            length,
         })
     }
 
     pub fn spawn(&mut self) {
-        for alien in self.sprites.iter_mut() {
-            alien.spawn();
+        for alien in self.aliens.iter_mut() {
+            let _ = alien.spawn();
         }
     }
 
-    pub fn iter(&self) -> Iter<'_, Sprite> {
-        self.sprites.iter()
+    fn farthest_right(&self) -> usize {
+        //self.aliens[self.aliens.len() - 1].far_right()
+        let mut f = self.aliens[0].far_right();
+        for alien in self.aliens.iter() {
+            let _fr = alien.far_right();
+            if _fr > f {
+                f = _fr;
+            }
+        }
+        f
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<'_, Sprite> {
-        self.sprites.iter_mut()
+    fn farthest_left(&self) -> usize {
+        //self.aliens[0].far_left()
+        let mut f = self.aliens[self.aliens.len() - 1].far_left();
+        for alien in self.aliens.iter() {
+            let _fr = alien.far_left();
+            if _fr < f {
+                f = _fr;
+            }
+        }
+        f
     }
 
-    pub fn step(&mut self, delta_time: f64) -> Result<State, Error> {
-        match self.direction {
-            Direction::Right => {
-                if self.sprites[self.sprites.len() - 1].bounding_box.far_right == self.width - 1 {
-                    self.direction = Direction::Left;
-                    return Err(Error::new(
-                        ErrorKind::OutOfBounds,
-                        "Hit the far right boundry",
-                    ));
+    //pub fn contains(&self, coordinate: &Coordinate) -> bool {
+    //    self.aliens.iter().any(|a| a.contains(coordinate))
+    //}
+
+    pub fn contains_and_destroy(&mut self, coordinate: Coordinate) -> bool {
+        for i in 0..self.aliens.len() {
+            if self.aliens[i].contains(coordinate) {
+                let _ = self.aliens[i].destroy();
+                self.aliens.remove(i);
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn step(&mut self, delta_time: f64) -> Result<(), Error> {
+        // Giving a custom step to all the alien sprites
+        // because there's an issue that aliens in the extreme
+        // boundries modify their step, leading to inconsistent steps
+        // among all aliens. When an alien in an extreme side
+        // goes out of bounds, I want the custom step to apply to all
+        // the aliens, not just the ones in the left and right boundry
+        //
+        // I want to avoid using the move_left() and move_right() methods
+        // because they encapsulate logic that I don't have access to. In this case,
+        // I created a move_relative_x() method where an arbitrary step must be
+        // given. The downside is that I'll have to manually take care of the other internal
+        // variables like updating the exact_x variable, and the logic that happens within.
+        // A small price for in return, more control over the sprites.
+        let offset: f64 = delta_time * self.velocity;
+        let step: i32 = {
+            let x = self.aliens[0].exact_x();
+            // obtaining the whole number difference
+            let abs_step = (x + offset) as usize - x as usize;
+            //if abs_step == 0 {
+            //    return Ok(());
+            //}
+            match self.direction {
+                Direction::Left => {
+                    if self.farthest_left() as i32 - (abs_step as i32) < 0 {
+                        // modifying the step because otherwise, it will to
+                        // an out of bounds error
+                        self.farthest_right() as i32
+                    } else {
+                        // turning the step into a negative number
+                        // to signify moving left
+                        0 - abs_step as i32
+                    }
                 }
-                for sprite in self.sprites.iter_mut() {
-                    let result = sprite.move_right(delta_time);
-                    if let Ok(State::Collided(_)) = result {
-                        sprite.destroy(); // automatically dies
+                Direction::Right => {
+                    if self.farthest_right() as i32 + (abs_step as i32) > (self.width - 1) as i32 {
+                        // modifying the step because otherwise, the sprite
+                        // will step out of bounds
+                        (self.width - self.farthest_left() - 1) as i32
+                    } else {
+                        abs_step as i32
                     }
                 }
             }
+        };
+        // making the offset to negative for left movement
+        let neg_offset = 0.0 - offset;
+        match self.direction {
             Direction::Left => {
-                if self.sprites[0].bounding_box.far_left == 0 {
+                if self.farthest_left() == 0 {
                     self.direction = Direction::Right;
-                    return Err(Error::new(
-                        ErrorKind::OutOfBounds,
-                        "Hit the far left boundry",
-                    ));
+                    return Ok(());
                 }
-                for sprite in self.sprites.iter_mut() {
-                    let _ = sprite.move_left(delta_time); // collision logic has not been implemented yet
+                for alien in self.aliens.iter_mut() {
+                    //let _ = alien.move_left(delta_time);
+                    alien.offset_exact_x(neg_offset);
+                    let _ = alien.move_relative_x(step);
+                }
+            }
+            Direction::Right => {
+                if self.farthest_right() == self.width - 1 {
+                    self.direction = Direction::Left;
+                    return Ok(());
+                }
+                for alien in self.aliens.iter_mut() {
+                    //let _ = alien.move_right(delta_time);
+                    alien.offset_exact_x(offset);
+                    let _ = alien.move_relative_x(step);
                 }
             }
         }
-        Ok(State::Moved)
+        Ok(())
     }
+
+    pub fn destroy(&mut self, coordinate: Coordinate) {
+        for i in 0..self.aliens.len() {
+            if self.aliens[i].contains(coordinate) {
+                self.aliens[i].destroy();
+                let _ = self.aliens.remove(i);
+                break;
+            }
+        }
+    }
+
+    //pub fn iter_mut(&mut self) -> IterMut<'_, Sprite> {
+    //    self.aliens.iter_mut()
+    //}
 }
