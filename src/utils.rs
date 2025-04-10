@@ -1,13 +1,6 @@
 /*
     Unspecific functions
 */
-use crate::engine::{
-    sprite::{Sprite, State},
-    Coordinate,
-};
-
-use std::thread;
-use std::time::Duration;
 
 /// Clears the terminal screen
 pub(crate) fn clear() {
@@ -21,22 +14,25 @@ pub(crate) fn refresh() {
 
 /// Delays any thread action
 pub(crate) fn sleep(n: f64) {
+    use std::thread;
+    use std::time::Duration;
+
     thread::sleep(Duration::from_secs_f64(n));
 }
 
-pub(crate) fn log<S: AsRef<str> + std::fmt::Debug + std::marker::Send + 'static>(data: S) -> std::io::Result<()> {
+pub(crate) fn log(data: String) {
     use std::fs::OpenOptions;
     use std::io::Write;
     use std::thread::{self, JoinHandle};
 
     let callback: JoinHandle<std::io::Result<()>> = thread::spawn(move || {
-        let mut file = OpenOptions::new()
+        if let Ok(mut file) = OpenOptions::new()
             .append(true)
             .create(true)
-            .open(r"C:\Users\gmend\Rust\lab\spaceinvaders\logs.txt")?;
-        writeln!(file, "{:?}", data)?;
+            .open(r"C:\Users\gmend\Rust\lab\spaceinvaders\logs.txt") {
+            let _ = writeln!(file, "{:?}", data);
+        }
         Ok(())
     });
-    callback.join();
-    Ok(())
+    let _ = callback.join();
 }

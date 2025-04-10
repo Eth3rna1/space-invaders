@@ -1,9 +1,6 @@
 #![allow(warnings)]
 /*
     Remaking the game Space Invaders in ASCII
-
-To-Do:
-    use the signal_hook crate
 */
 mod engine;
 mod entities;
@@ -39,74 +36,28 @@ const PLANE_DIMENSIONS: Coordinate = (100, 25); // (WIDTH, HEIGHT)
 pub const PIXEL_CHAR: char = '⨊';
 pub const BACKGROUND_CHAR: char = '.';
 
-pub const ALIEN_STEP_PER_DELTA: f64 = 15.0;
-pub const BULLET_STEP_PER_DELTA: f64 = 9.0;
+pub const ALIEN_STEP_PER_DELTA: f32 = 15.0;
+pub const BULLET_STEP_PER_DELTA: f32 = 9.0;
 //pub const SHOOTER_STEP_PER_DELTA: f64 = 3.0;
-pub const SHOOTER_STEP_PER_DELTA: f64 = 90.0;
-pub const SPEEDSTER_STEP_PER_DELTA: f64 = 2.0;
-pub const SPEEDSTER_BULLET_PER_DELTA: f64 = 2.0;
+pub const SHOOTER_STEP_PER_DELTA: f32 = 90.0;
+pub const SPEEDSTER_STEP_PER_DELTA: f32 = 2.0;
+pub const SPEEDSTER_BULLET_PER_DELTA: f32 = 2.0;
 
 fn main() -> Result<(), Error> {
     let mut game = SpaceInvaders::new(PLANE_DIMENSIONS)?;
     game.set_up();
-    let mut delta_time: f64 = 1.0;
+    let mut delta_time: f32 = 1.0;
+    let game_timer = Instant::now();
     loop {
         let start = Instant::now();
         game.handle_input();
-        //game.update(unsafe { DELTA_TIME });
         game.update(delta_time);
         game.draw();
         if game.game_over() {
             break;
         }
-        delta_time = (Instant::now() - start).as_secs_f64();
-        //unsafe {
-        //    utils::sleep(DELTA_TIME); // forcing delta time
-        //}
+        delta_time = (Instant::now() - start).as_secs_f32();
     }
+    println!("You finished the game in: {:?}\n", Instant::now() - game_timer);
     Ok(())
 }
-
-//fn main() -> Result<(), Error> {
-//    utils::clear();
-//    let mut engine = Engine::new(PLANE_DIMENSIONS).as_rc();
-//    let mut square = Sprite::new(
-//        engine.clone(),
-//        // start at the far left side and moving the box right
-//        vec![
-//            //(0, PLANE_DIMENSIONS.1 / 2),
-//            //(1, PLANE_DIMENSIONS.1 / 2),
-//            //(0, PLANE_DIMENSIONS.1 / 2 - 1),
-//            //(1, PLANE_DIMENSIONS.1 / 2 - 1),
-//            (PLANE_DIMENSIONS.0 - 1, PLANE_DIMENSIONS.1 / 2),
-//            (PLANE_DIMENSIONS.0 - 2, PLANE_DIMENSIONS.1 / 2),
-//            (PLANE_DIMENSIONS.0 - 1, PLANE_DIMENSIONS.1 / 2 - 1),
-//            (PLANE_DIMENSIONS.0 - 2, PLANE_DIMENSIONS.1 / 2 - 1),
-//        ],
-//        //1.0,
-//        2.0
-//    )?;
-//    square.spawn()?;
-//    //let mut delta_time: f64 = 1.0;
-//    loop {
-//        //                                      PROBLEM: SQUARE FLIES BY
-//        let start = Instant::now();
-//        //println!("{:?}", square.coordinates);
-//        //let ex = square.exact_x();
-//        //let offset = square.velocity() * delta_time;
-//        //let step = dbg!((ex + offset) as usize - ex as usize);
-//        //dbg!(&ex, &offset, &delta_time);
-//        //if step == 0 {
-//        //    square.offset_exact_x(offset);
-//        //    //continue
-//        //}
-//        //square.move_relative_x(step as i32)?;
-//        square.move_relative_x(-1)?;
-//        println!("{}", engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR));
-//        utils::sleep(0.05);
-//        utils::refresh();
-//        //utils::clear();
-//        //delta_time = (Instant::now() - start).as_secs_f64();
-//    }
-//   Ok(())
-//}

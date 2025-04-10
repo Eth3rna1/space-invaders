@@ -24,21 +24,21 @@ pub struct Sprite {
     pub(crate) engine: Rc<RefCell<Engine>>,
     pub(crate) coordinates: Vec<Coordinate>,
     // one velocity for both axises
-    pub(crate) velocity: f64,
+    pub(crate) velocity: f32,
     pub(crate) bounding_box: BoundingBox,
     is_spawned: bool,
     is_destroyed: bool,
     /// The pin point floating number X position of the sprite
-    exact_x: f64,
+    exact_x: f32,
     /// The pin point floating number Y position of the sprite
-    exact_y: f64,
+    exact_y: f32,
 }
 
 impl Sprite {
     pub fn new(
         engine: Rc<RefCell<Engine>>,
         coordinates: Vec<Coordinate>,
-        velocity: f64,
+        velocity: f32,
     ) -> Result<Self, Error> {
         {
             //error cases
@@ -72,9 +72,13 @@ impl Sprite {
             bounding_box,
             is_spawned: false,
             is_destroyed: false,
-            exact_x: bounding_box.far_left as f64,
-            exact_y: bounding_box.far_top as f64,
+            exact_x: bounding_box.far_left as f32,
+            exact_y: bounding_box.far_top as f32,
         })
+    }
+
+    pub fn bounding_box(&self) -> BoundingBox {
+        self.bounding_box.clone()
     }
 
     pub fn is_destroyed(&self) -> bool {
@@ -105,42 +109,24 @@ impl Sprite {
         self.coordinates.contains(&coordinate)
     }
 
-    pub fn velocity(&self) -> f64 {
+    pub fn velocity(&self) -> f32 {
         self.velocity
     }
 
-    pub fn exact_x(&self) -> f64 {
+    pub fn exact_x(&self) -> f32 {
         self.exact_x
     }
 
-    pub fn offset_exact_x(&mut self, offset: f64) {
+    pub fn offset_exact_x(&mut self, offset: f32) {
         self.exact_x += offset;
     }
 
-    pub fn exact_y(&self) -> f64 {
+    pub fn exact_y(&self) -> f32 {
         self.exact_y
     }
 
-    pub fn offset_exact_y(&mut self, offset: f64) {
+    pub fn offset_exact_y(&mut self, offset: f32) {
         self.exact_y += offset;
-    }
-
-    /// A function that looks into the future next left position
-    pub fn next_step_left(&self, delta_time: f64) -> usize {
-        (self.exact_x - self.velocity * delta_time) as usize
-    }
-
-    /// A function that looks into the future next right position
-    pub fn next_step_right(&self, delta_time: f64) -> usize {
-        (self.exact_x + self.velocity * delta_time) as usize
-    }
-
-    pub fn next_step_up(&self, delta_time: f64) -> usize {
-        (self.exact_y - self.velocity * delta_time) as usize
-    }
-
-    pub fn next_step_down(&self, delta_time: f64) -> usize {
-        (self.exact_y + self.velocity * delta_time) as usize
     }
 
     pub fn pop(&mut self, coordinate: Coordinate) -> Result<State, Error> {
@@ -165,8 +151,6 @@ impl Sprite {
     }
 
     pub fn spawn(&mut self) -> Result<State, Error> {
-        self.is_destroyed = false;
-        self.is_spawned = true;
         let mut eng = self.engine.borrow_mut();
         {
             if self.coordinates.iter().any(|coor| eng.is_on(coor)) {
@@ -181,14 +165,17 @@ impl Sprite {
                 eng.spawn(*coordinate);
             }
         }
+        self.is_destroyed = false;
+        self.is_spawned = true;
         Ok(State::Spawned)
     }
 
-    pub fn move_up(&mut self, delta_time: f64) -> Result<State, Error> {
+    pub fn move_up(&mut self, delta_time: f32) -> Result<State, Error> {
         let mut engine = self.engine.borrow_mut();
         {
             // error checking if the sprite is already touching the boundry
             if self.bounding_box.far_top == 0 {
+                self.exact_y = 0.0;
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
                     "Hit the far right boundry",
@@ -198,10 +185,13 @@ impl Sprite {
         // calculating the EXACT floating point offset number. In other words, the EXACT step;
         // the code following the `offset` variable, is going to work with rounding
         // such number
-        let offset: f64 = self.velocity * delta_time;
+        let offset: f32 = self.velocity * delta_time;
         // obtaining the difference between the new X position and the current X position
         let step: usize = (self.exact_y + offset) as usize - self.exact_y as usize;
-        self.exact_y -= offset;
+        if self.exact_y < 0.0 {
+            // clamping correction
+            self.exact_y = self.bounding_box.far_top as f32;
+        }
         if step == 0 {
             // this if statement
             // reduces redundancy
@@ -210,13 +200,14 @@ impl Sprite {
             // is no visual momentum
             // and thus, there is no
             // need to update anything
+            self.exact_y -= offset;
             return Ok(State::Null);
         }
         // checking if the step leads the sprite out of boundries, if so, a new step is assigned
         let step = if self.bounding_box.far_top as i32 - step as i32 <= 0 {
             // reassigning to its starting position
             let new_step = self.bounding_box.far_top;
-            self.exact_y = self.bounding_box.far_top as f64;
+            self.exact_y = self.bounding_box.far_top as f32;
             //self.exact_y -= self.exact_y; // 0
             new_step
         } else {
@@ -224,13 +215,17 @@ impl Sprite {
         };
         if engine.collisions() {
             // collision detection
-            for col in self.bounding_box.far_right..=self.bounding_box.far_left {
+            for col in self.bounding_box.far_left..=self.bounding_box.far_right {
                 let future_coordinate = (col, self.bounding_box.far_top - step);
                 if engine.is_on(&future_coordinate) {
-                    self.exact_y += offset; // reseting the offset
+                    //self.exact_y += offset; // reseting the offset
                     return Ok(State::Collided(future_coordinate));
                 }
             }
+        }
+        {
+            // updating the floating point position number
+            self.exact_y -= offset;
         }
         if self.is_spawned {
             // reseting the current position
@@ -252,11 +247,12 @@ impl Sprite {
         Ok(State::Moved)
     }
 
-    pub fn move_left(&mut self, delta_time: f64) -> Result<State, Error> {
+    pub fn move_left(&mut self, delta_time: f32) -> Result<State, Error> {
         let mut engine = self.engine.borrow_mut();
         {
             // error checking if the sprite is already touching the boundry
             if self.bounding_box.far_left == 0 {
+                self.exact_x = 0.0;
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
                     "Hit the far right boundry",
@@ -266,10 +262,13 @@ impl Sprite {
         // calculating the EXACT floating point offset number. In other words, the EXACT step;
         // the code following the `offset` variable, is going to work with rounding
         // such number
-        let offset: f64 = self.velocity * delta_time;
+        let offset: f32 = self.velocity * delta_time;
         // obtaining the difference between the new X position and the current X position
         let step: usize = (self.exact_x + offset) as usize - self.exact_x as usize;
-        self.exact_x -= offset;
+        if self.exact_x < 0.0 {
+            // clamping correction
+            self.exact_x = self.bounding_box.far_left as f32;
+        }
         if step == 0 {
             // this if statement
             // reduces redundancy
@@ -278,6 +277,7 @@ impl Sprite {
             // is no visual momentum
             // and thus, there is no
             // need to update anything
+            self.exact_x -= offset;
             return Ok(State::Null);
         }
         // checking if the step leads the sprite out of boundries, if so, a new step is assigned
@@ -305,7 +305,7 @@ impl Sprite {
             //  As shown by the equation, subtracting the X position by itself, the
             //  value will cancel out and will equal 0.
             let new_step = self.bounding_box.far_left;
-            self.exact_x = self.bounding_box.far_left as f64;
+            self.exact_x = self.bounding_box.far_left as f32;
             //self.exact_x -= self.exact_x; // 0
             new_step
         } else {
@@ -316,10 +316,14 @@ impl Sprite {
             for row in self.bounding_box.far_top..=self.bounding_box.far_bottom {
                 let future_coordinate = (self.bounding_box.far_left - step, row);
                 if engine.is_on(&future_coordinate) {
-                    self.exact_x += offset; // reseting the offset
+                    //self.exact_x += offset; // reseting the offset
                     return Ok(State::Collided(future_coordinate));
                 }
             }
+        }
+        {
+            // Updating the floating point precision X position
+            self.exact_x -= offset;
         }
         if self.is_spawned {
             // reseting the current position
@@ -341,11 +345,12 @@ impl Sprite {
         Ok(State::Moved)
     }
 
-    pub fn move_right(&mut self, delta_time: f64) -> Result<State, Error> {
+    pub fn move_right(&mut self, delta_time: f32) -> Result<State, Error> {
         let mut engine = self.engine.borrow_mut();
         {
             // error checking if the sprite is already touching the boundry
             if self.bounding_box.far_right == engine.width - 1 {
+                self.exact_x = (engine.width - 1) as f32;
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
                     "Hit the far right boundry",
@@ -355,10 +360,10 @@ impl Sprite {
         // calculating the EXACT floating point offset number. In other words, the EXACT step;
         // the code following the `offset` variable, is going to work with rounding
         // such number
-        let offset: f64 = self.velocity * delta_time;
+        let offset: f32 = self.velocity * delta_time;
         // obtaining the difference between the new X position and the current X position
         let step: usize = (self.exact_x + offset) as usize - self.exact_x as usize;
-        self.exact_x += offset;
+        //self.exact_x += offset;
         if step == 0 {
             // this if statement
             // reduces redundancy
@@ -367,14 +372,15 @@ impl Sprite {
             // is no visual momentum
             // and thus, there is no
             // need to update anything
+            self.exact_x += offset;
             return Ok(State::Null);
         }
         // checking if the step leads the sprite out of boundries, if so, a new step is assigned
         let step = if self.bounding_box.far_right + step >= engine.width {
             let new_step = engine.width - self.bounding_box.far_right - 1;
             // + new step because the coordinates haven't been updated yet
-            //self.exact_x = (self.bounding_box.far_left + new_step) as f64;
-            self.exact_x = (self.bounding_box.far_right + new_step) as f64;
+            //self.exact_x = (self.bounding_box.far_left + new_step) as f32;
+            self.exact_x = (self.bounding_box.far_right + new_step) as f32;
             new_step
         } else {
             step
@@ -384,10 +390,14 @@ impl Sprite {
             for row in self.bounding_box.far_top..=self.bounding_box.far_bottom {
                 let future_coordinate = (self.bounding_box.far_right + step, row);
                 if engine.is_on(&future_coordinate) {
-                    self.exact_x -= offset; // reseting the offset
+                    //self.exact_x -= offset; // reseting the offset
                     return Ok(State::Collided(future_coordinate));
                 }
             }
+        }
+        {
+            // updating the x position
+            self.exact_x += offset;
         }
         if self.is_spawned {
             // reseting the current position
@@ -409,11 +419,12 @@ impl Sprite {
         Ok(State::Moved)
     }
 
-    pub fn move_down(&mut self, delta_time: f64) -> Result<State, Error> {
+    pub fn move_down(&mut self, delta_time: f32) -> Result<State, Error> {
         let mut engine = self.engine.borrow_mut();
         {
             // error checking if the sprite is already touching the boundry
             if self.bounding_box.far_bottom == engine.height - 1 {
+                self.exact_y = (engine.height - 1) as f32;
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
                     "Hit the far bottom boundry",
@@ -423,10 +434,10 @@ impl Sprite {
         // calculating the EXACT floating point offset number. In other words, the EXACT step;
         // the code following the `offset` variable, is going to work with rounding
         // such number
-        let offset: f64 = self.velocity * delta_time;
+        let offset: f32 = self.velocity * delta_time;
         // obtaining the difference between the new X position and the current X position
         let step: usize = (self.exact_y + offset) as usize - self.exact_y as usize;
-        self.exact_y += offset;
+        //self.exact_y += offset;
         if step == 0 {
             // this if statement
             // reduces redundancy
@@ -435,13 +446,14 @@ impl Sprite {
             // is no visual momentum
             // and thus, there is no
             // need to update anything
+            self.exact_y += offset;
             return Ok(State::Null);
         }
         // checking if the step leads the sprite out of boundries, if so, a new step is assigned
         let step = if self.bounding_box.far_bottom + step >= engine.height {
             let new_step = engine.height - self.bounding_box.far_bottom - 1;
             // + new step because the coordinates haven't been updated yet
-            self.exact_y = (self.bounding_box.far_top + new_step) as f64;
+            self.exact_y = (self.bounding_box.far_top + new_step) as f32;
             new_step
         } else {
             step
@@ -451,10 +463,14 @@ impl Sprite {
             for col in self.bounding_box.far_right..=self.bounding_box.far_left {
                 let future_coordinate = (col, self.bounding_box.far_bottom + step);
                 if engine.is_on(&future_coordinate) {
-                    self.exact_y += offset; // reseting the offset
+                    //self.exact_y += offset; // reseting the offset
                     return Ok(State::Collided(future_coordinate));
                 }
             }
+        }
+        {
+            // updating the floating point Y position
+            self.exact_y += offset;
         }
         if self.is_spawned {
             // reseting the current position

@@ -20,12 +20,12 @@ enum Direction {
 pub struct Aliens {
     aliens: Vec<Sprite>,
     direction: Direction,
-    velocity: f64,
+    velocity: f32,
     width: usize,
 }
 
 impl Aliens {
-    pub fn new(engine: Rc<RefCell<Engine>>, count: usize, velocity: f64) -> Result<Self, Error> {
+    pub fn new(engine: Rc<RefCell<Engine>>, count: usize, velocity: f32) -> Result<Self, Error> {
         let mut aliens: Vec<Sprite> = {
             let eng = engine.borrow();
             let mut collector: Vec<Sprite> = Vec::new();
@@ -67,6 +67,10 @@ impl Aliens {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.aliens.is_empty()
+    }
+
     fn farthest_right(&self) -> usize {
         //self.aliens[self.aliens.len() - 1].far_right()
         let mut f = self.aliens[0].far_right();
@@ -91,11 +95,7 @@ impl Aliens {
         f
     }
 
-    //pub fn contains(&self, coordinate: &Coordinate) -> bool {
-    //    self.aliens.iter().any(|a| a.contains(coordinate))
-    //}
-
-    pub fn contains_and_destroy(&mut self, coordinate: Coordinate) -> bool {
+    pub fn find_and_destroy(&mut self, coordinate: Coordinate) -> bool {
         for i in 0..self.aliens.len() {
             if self.aliens[i].contains(coordinate) {
                 let _ = self.aliens[i].destroy();
@@ -106,7 +106,10 @@ impl Aliens {
         false
     }
 
-    pub fn step(&mut self, delta_time: f64) -> Result<(), Error> {
+    pub fn step(&mut self, delta_time: f32) -> Result<(), Error> {
+        if self.aliens.is_empty() {
+            return Ok(());
+        }
         // Giving a custom step to all the alien sprites
         // because there's an issue that aliens in the extreme
         // boundries modify their step, leading to inconsistent steps
@@ -120,7 +123,7 @@ impl Aliens {
         // given. The downside is that I'll have to manually take care of the other internal
         // variables like updating the exact_x variable, and the logic that happens within.
         // A small price for in return, more control over the sprites.
-        let offset: f64 = delta_time * self.velocity;
+        let offset: f32 = delta_time * self.velocity;
         let step: i32 = {
             let x = self.aliens[0].exact_x();
             // obtaining the whole number difference
@@ -160,7 +163,6 @@ impl Aliens {
                     return Ok(());
                 }
                 for alien in self.aliens.iter_mut() {
-                    //let _ = alien.move_left(delta_time);
                     alien.offset_exact_x(neg_offset);
                     let _ = alien.move_relative_x(step);
                 }
@@ -171,7 +173,6 @@ impl Aliens {
                     return Ok(());
                 }
                 for alien in self.aliens.iter_mut() {
-                    //let _ = alien.move_right(delta_time);
                     alien.offset_exact_x(offset);
                     let _ = alien.move_relative_x(step);
                 }
@@ -189,8 +190,4 @@ impl Aliens {
             }
         }
     }
-
-    //pub fn iter_mut(&mut self) -> IterMut<'_, Sprite> {
-    //    self.aliens.iter_mut()
-    //}
 }

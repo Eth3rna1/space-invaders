@@ -4,6 +4,7 @@ use crate::entities::{Aliens, Bullet, Shooter};
 use crate::errors::{Error, ErrorKind};
 use crate::listener::get_key;
 use crate::utils;
+use crate::engine::sprite::State;
 use crate::{
     ALIEN_COUNT, ALIEN_STEP_PER_DELTA, BACKGROUND_CHAR, BULLET_STEP_PER_DELTA, PIXEL_CHAR,
     SHOOTER_STEP_PER_DELTA,
@@ -11,6 +12,7 @@ use crate::{
 
 use std::cell::RefCell;
 use std::rc::Rc;
+
 
 #[derive(Clone, Debug)]
 pub struct SpaceInvaders {
@@ -56,7 +58,7 @@ impl SpaceInvaders {
         self.key = get_key();
     }
 
-    pub fn update(&mut self, delta_time: f64) {
+    pub fn update(&mut self, delta_time: f32) {
         {
             // checking key pressed and spawning bullets if a space is pressed
             if let Some(key) = &self.key {
@@ -68,8 +70,9 @@ impl SpaceInvaders {
                             self.shooter.head(),
                             BULLET_STEP_PER_DELTA,
                         ) {
-                            let _ = bullet.spawn();
-                            self.bullets.push(bullet);
+                            if let Ok(_) = bullet.spawn() {
+                                self.bullets.push(bullet);
+                            }
                         }
                     }
                     "left" | "right" => {
@@ -81,9 +84,30 @@ impl SpaceInvaders {
         }
         {
             // moving all bullets
+            let mut bullets_to_destroy: Vec<usize> = Vec::new();
             for i in 0..self.bullets.len() {
-                let mut b = &mut self.bullets[i];
-                let _ = b.step(delta_time);
+                match self.bullets[i].step(delta_time) {
+                    Ok(state) => match state {
+                        State::Collided(coordinate) => {
+                            if self.aliens.find_and_destroy(coordinate) {
+                                self.bullets[i].destroy();
+                                bullets_to_destroy.push(i);
+                            }
+                        }
+                        _ => {},
+                    },
+                    Err(error) => match error.kind() {
+                        ErrorKind::OutOfBounds => {
+                            self.bullets[i].destroy();
+                            bullets_to_destroy.push(i);
+                        },
+                        _ => {}
+                    }
+                }
+            }
+            // removing bullets from the vector
+            for idx in bullets_to_destroy.iter() {
+                self.bullets.remove(*idx);
             }
         }
         {
@@ -102,6 +126,6 @@ impl SpaceInvaders {
     }
 
     pub fn game_over(&self) -> bool {
-        false
+        self.aliens.is_empty()
     }
 }
