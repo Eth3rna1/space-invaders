@@ -68,7 +68,7 @@ impl Aliens {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.aliens.is_empty()
+        self.aliens.is_empty() || self.aliens.iter().all(|a| a.is_destroyed())
     }
 
     fn farthest_right(&self) -> usize {
@@ -106,9 +106,9 @@ impl Aliens {
         false
     }
 
-    pub fn step(&mut self, delta_time: f32) -> Result<(), Error> {
+    pub fn step(&mut self, delta_time: f32) -> Option<Coordinate> {
         if self.aliens.is_empty() {
-            return Ok(());
+            return None;
         }
         // Giving a custom step to all the alien sprites
         // because there's an issue that aliens in the extreme
@@ -128,9 +128,6 @@ impl Aliens {
             let x = self.aliens[0].exact_x();
             // obtaining the whole number difference
             let abs_step = (x + offset) as usize - x as usize;
-            //if abs_step == 0 {
-            //    return Ok(());
-            //}
             match self.direction {
                 Direction::Left => {
                     if self.farthest_left() as i32 - (abs_step as i32) < 0 {
@@ -156,29 +153,56 @@ impl Aliens {
         };
         // making the offset to negative for left movement
         let neg_offset = 0.0 - offset;
+        let mut coordinate_if_collided: Option<Coordinate> = None;
+        let mut aliens_index_to_destroy: Vec<usize> = Vec::new();
         match self.direction {
             Direction::Left => {
                 if self.farthest_left() == 0 {
                     self.direction = Direction::Right;
-                    return Ok(());
+                    return None;
                 }
-                for alien in self.aliens.iter_mut() {
+                for i in 0..self.aliens.len() {
+                    let mut alien = &mut self.aliens[i];
                     alien.offset_exact_x(neg_offset);
-                    let _ = alien.move_relative_x(step);
+                    match alien.move_relative_x(step) {
+                        Ok(state) => match state {
+                            State::Collided(coordinate) => {
+                                coordinate_if_collided = Some(coordinate);
+                                aliens_index_to_destroy.push(i);
+                            }
+                            _ => (),
+                        },
+                        Err(_) => (),
+                    }
                 }
             }
             Direction::Right => {
                 if self.farthest_right() == self.width - 1 {
                     self.direction = Direction::Left;
-                    return Ok(());
+                    return None;
                 }
-                for alien in self.aliens.iter_mut() {
+                for i in 0..self.aliens.len() {
+                    let mut alien = &mut self.aliens[i];
                     alien.offset_exact_x(offset);
-                    let _ = alien.move_relative_x(step);
+                    match alien.move_relative_x(step) {
+                        Ok(state) => match state {
+                            State::Collided(coordinate) => {
+                                coordinate_if_collided = Some(coordinate);
+                                aliens_index_to_destroy.push(i);
+                            }
+                            _ => (),
+                        },
+                        Err(_) => (),
+                    }
                 }
             }
         }
-        Ok(())
+        aliens_index_to_destroy.sort_by(|a, b| b.cmp(a));
+        for idx in aliens_index_to_destroy {
+            let _ = self.aliens[idx].destroy();
+            self.aliens.remove(idx);
+        }
+        coordinate_if_collided
     }
 
     pub fn destroy(&mut self, coordinate: Coordinate) {
@@ -189,5 +213,150 @@ impl Aliens {
                 break;
             }
         }
+    }
+}
+
+pub fn spawn_aliens(
+    engine: Rc<RefCell<Engine>>,
+    count: usize,
+    velocity: f32,
+) -> Result<Vec<Alien>, Error> {
+    let eng = engine.borrow();
+    let mut collector: Vec<Alien> = Vec::new();
+    let width = 4; // sprite width
+    let alien_width = 3 * width; // total width of each alien (3 sprites per alien)
+    let space_between = (eng.width - alien_width * count) / (count + 1); // Calculate space between aliens
+
+    // Loop to generate alien rows
+    for row in [4, 8, 12] {
+        let mut pointer = space_between; // Start the pointer at space_between
+        while pointer + alien_width <= eng.width {
+            // Ensure we stay within bounds
+            let position = vec![
+                (pointer, row),
+                (pointer + 1, row),
+                (pointer + 2, row),
+                (pointer, row + 1),
+                (pointer + 1, row + 1),
+                (pointer + 2, row + 1),
+            ];
+            collector.push(Alien::new(engine.clone(), position, velocity)?);
+            pointer += alien_width + space_between; // Update pointer to next position
+                                                    //pointer += space_between;
+        }
+    }
+    Ok(collector)
+}
+
+pub fn farthest_right_alien(aliens: &[Alien]) -> usize {
+    let mut res_index = 0;
+    let mut memo = aliens[0].far_right();
+    for i in 0..aliens.len() {
+        let alien_right = aliens[i].far_right();
+        if alien_right > memo {
+            memo = alien_right;
+            res_index = i;
+        }
+    }
+    res_index
+}
+
+pub fn farthest_left_alien(aliens: &[Alien]) -> usize {
+    let mut res_index = 0;
+    let mut memo = aliens[0].far_left();
+    for i in 0..aliens.len() {
+        let alien_left = aliens[i].far_left();
+        if alien_left < memo {
+            memo = alien_left;
+            res_index = i;
+        }
+    }
+    res_index
+}
+
+#[derive(Debug, Clone)]
+pub struct Alien {
+    sprite: Sprite,
+    direction: Direction,
+    velocity: f32,
+    width: usize,
+}
+
+impl Alien {
+    pub fn new(
+        engine: Rc<RefCell<Engine>>,
+        position: Vec<Coordinate>,
+        velocity: f32,
+    ) -> Result<Self, Error> {
+        let width = { engine.borrow().width };
+        Ok(Self {
+            width,
+            velocity,
+            direction: Direction::Right,
+            sprite: Sprite::new(engine, position, velocity)?,
+        })
+    }
+
+    pub fn far_right(&self) -> usize {
+        self.sprite.far_right()
+    }
+
+    pub fn far_left(&self) -> usize {
+        self.sprite.far_left()
+    }
+
+    pub fn invert_direction(&mut self) {
+        match self.direction {
+            Direction::Left => self.direction = Direction::Right,
+            Direction::Right => self.direction = Direction::Left,
+        }
+    }
+
+    pub fn spawn(&mut self) -> Result<(), Error> {
+        let _ = self.sprite.spawn()?;
+        Ok(())
+    }
+
+    pub fn step(&mut self, step: i32) -> Option<Coordinate> {
+        if self.sprite.is_destroyed() {
+            return None;
+        }
+        match self.direction {
+            Direction::Left => {
+                if self.sprite.far_left() == 0 {
+                    return None;
+                }
+                return match self.sprite.move_relative_x(step) {
+                    Ok(state) => match state {
+                        State::Collided(coordinate) => {
+                            self.sprite.destroy();
+                            Some(coordinate)
+                        }
+                        _ => None,
+                    },
+                    Err(_) => None,
+                };
+            }
+            Direction::Right => {
+                if self.sprite.far_right() == self.width - 1 {
+                    self.direction = Direction::Left;
+                    return None;
+                }
+                return match self.sprite.move_relative_x(step) {
+                    Ok(state) => match state {
+                        State::Collided(coordinate) => {
+                            self.sprite.destroy();
+                            Some(coordinate)
+                        }
+                        _ => None,
+                    },
+                    Err(_) => None,
+                };
+            }
+        }
+    }
+
+    pub fn destroy(&mut self) {
+        let _ = self.sprite.destroy();
     }
 }

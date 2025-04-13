@@ -1,26 +1,30 @@
+use crate::engine::sprite::State;
 use crate::engine::Coordinate;
 use crate::engine::Engine;
-use crate::entities::{Aliens, Bullet, Shooter};
+use crate::entities::{
+    Bullet, Shooter, Speedster, {farthest_left_alien, farthest_right_alien, Aliens},
+};
 use crate::errors::{Error, ErrorKind};
 use crate::listener::get_key;
 use crate::utils;
-use crate::engine::sprite::State;
 use crate::{
     ALIEN_COUNT, ALIEN_STEP_PER_DELTA, BACKGROUND_CHAR, BULLET_STEP_PER_DELTA, PIXEL_CHAR,
-    SHOOTER_STEP_PER_DELTA,
+    SHOOTER_STEP_PER_DELTA, SPEEDSTER_STEP_PER_DELTA,
 };
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
-
 #[derive(Clone, Debug)]
 pub struct SpaceInvaders {
-    pub(crate) engine: Rc<RefCell<Engine>>,
-    pub(crate) shooter: Shooter,
-    pub(crate) bullets: Vec<Bullet>,
     pub(crate) aliens: Aliens,
+    pub(crate) game_over: bool,
+    pub(crate) shooter: Shooter,
     pub(crate) key: Option<String>,
+    pub(crate) bullets: Vec<Bullet>,
+    pub(crate) speedster: Speedster,
+    pub(crate) engine: Rc<RefCell<Engine>>,
+    won: bool,
 }
 
 impl SpaceInvaders {
@@ -39,12 +43,16 @@ impl SpaceInvaders {
             Shooter::new(engine.clone(), position, SHOOTER_STEP_PER_DELTA)?
         };
         let aliens: Aliens = Aliens::new(engine.clone(), ALIEN_COUNT, ALIEN_STEP_PER_DELTA)?;
+        let speedster: Speedster = Speedster::new(engine.clone(), SPEEDSTER_STEP_PER_DELTA)?;
         Ok(Self {
-            shooter,
             engine,
             aliens,
-            bullets: Vec::new(),
+            shooter,
             key: None,
+            speedster,
+            won: false,
+            game_over: false,
+            bullets: Vec::new(),
         })
     }
 
@@ -54,67 +62,93 @@ impl SpaceInvaders {
         self.shooter.spawn();
     }
 
+    /// Memoizes the key pressed in an instant
     pub fn handle_input(&mut self) {
         self.key = get_key();
     }
 
-    pub fn update(&mut self, delta_time: f32) {
-        {
-            // checking key pressed and spawning bullets if a space is pressed
-            if let Some(key) = &self.key {
-                match key.as_str() {
-                    " " => {
-                        // spawning a bullet
-                        if let Ok(mut bullet) = Bullet::new(
-                            self.engine.clone(),
-                            self.shooter.head(),
-                            BULLET_STEP_PER_DELTA,
-                        ) {
-                            if let Ok(_) = bullet.spawn() {
-                                self.bullets.push(bullet);
-                            }
+    /// checking key pressed and spawning bullets if a space is pressed
+    fn _update_upon_key_press(&mut self, delta_time: f32) {
+        if let Some(key) = &self.key {
+            match key.as_str() {
+                " " => {
+                    // spawning a bullet
+                    if let Ok(mut bullet) = Bullet::new(
+                        self.engine.clone(),
+                        self.shooter.head(),
+                        BULLET_STEP_PER_DELTA,
+                    ) {
+                        if let Ok(_) = bullet.spawn() {
+                            self.bullets.push(bullet);
                         }
                     }
-                    "left" | "right" => {
-                        let _ = self.shooter.step(&key, delta_time);
-                    }
-                    _ => {}
                 }
+                "left" | "right" => {
+                    let _ = self.shooter.step(&key, delta_time);
+                }
+                _ => {}
             }
         }
-        {
-            // moving all bullets
+    }
+
+    /// moving the aliens
+    pub fn _move_aliens(&mut self, delta_time: f32) {
+        if let Some(coordinate) = self.aliens.step(delta_time) {
+            // perhaps hits a bullet
             let mut bullets_to_destroy: Vec<usize> = Vec::new();
             for i in 0..self.bullets.len() {
-                match self.bullets[i].step(delta_time) {
-                    Ok(state) => match state {
-                        State::Collided(coordinate) => {
-                            if self.aliens.find_and_destroy(coordinate) {
-                                self.bullets[i].destroy();
-                                bullets_to_destroy.push(i);
-                            }
-                        }
-                        _ => {},
-                    },
-                    Err(error) => match error.kind() {
-                        ErrorKind::OutOfBounds => {
-                            self.bullets[i].destroy();
-                            bullets_to_destroy.push(i);
-                        },
-                        _ => {}
-                    }
+                let mut bullet = &mut self.bullets[i];
+                if !bullet.is_alien_bullet() && bullet.contains(coordinate) {
+                    bullet.destroy();
+                    bullets_to_destroy.push(i);
                 }
             }
-            // removing bullets from the vector
-            for idx in bullets_to_destroy.iter() {
-                self.bullets.remove(*idx);
+            for i in bullets_to_destroy {
+                let _ = self.bullets.remove(i);
             }
         }
-        {
-            // moving the aliens
-            self.aliens.step(delta_time);
+    }
+
+    /// moving all bullets
+    pub fn _move_bullets(&mut self, delta_time: f32) {
+        let mut bullets_to_destroy: Vec<usize> = Vec::new();
+        for i in 0..self.bullets.len() {
+            if let Some(coordinate) = self.bullets[i].step(delta_time) {
+                // coordinate of the sprite it collided with
+                if self.aliens.find_and_destroy(coordinate) {
+                    self.bullets[i].destroy();
+                    bullets_to_destroy.push(i);
+                } else if self.shooter.contains(coordinate) {
+                    // an alien bullet that hit the player
+                    self.game_over = true;
+                    return;
+                } else if self.speedster.contains(coordinate) {
+                    // speedster vs the player in the end game
+                    self.game_over = true;
+                    self.won = true;
+                }
+            }
         }
-        self.key = None;
+    }
+
+    pub fn update(&mut self, delta_time: f32) {
+        {
+            // sends the key to the shooter or spawns new bullets
+            self._update_upon_key_press(delta_time);
+        }
+        {
+            // moves aliens, taking into account collisions with bullets,
+            // if collides with a bullet, both the alien and bullet get destroyed
+            self._move_aliens(delta_time);
+        }
+        {
+            // moves bullets, taking into account collisions with other sprites.
+            // If collides with other sprites, both the bullet and sprite gets
+            // destroyed.
+            // If the bullet collides with the speedster, the game is automatically
+            // a win for the player.
+            self._move_bullets(delta_time);
+        }
     }
 
     pub fn draw(&mut self) {
@@ -126,6 +160,7 @@ impl SpaceInvaders {
     }
 
     pub fn game_over(&self) -> bool {
-        self.aliens.is_empty()
+        //self.aliens.is_empty() && self.speedster.is_dead() || self.game_over
+        self.aliens.is_empty() || self.game_over
     }
 }

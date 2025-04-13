@@ -16,7 +16,7 @@ pub fn get_key() -> Option<String> {
                 KeyCode::Char(c) => match c {
                     ' ' => Some(c.to_string()),
                     _ => None,
-                }
+                },
                 _ => None,
             };
         }

@@ -29,7 +29,8 @@ pub(crate) fn log(data: String) {
         if let Ok(mut file) = OpenOptions::new()
             .append(true)
             .create(true)
-            .open(r"C:\Users\gmend\Rust\lab\spaceinvaders\logs.txt") {
+            .open(r"C:\Users\gmend\Rust\lab\spaceinvaders\logs.txt")
+        {
             let _ = writeln!(file, "{:?}", data);
         }
         Ok(())

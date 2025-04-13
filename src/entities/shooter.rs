@@ -27,13 +27,25 @@ impl Shooter {
         let _ = self.sprite.spawn();
     }
 
-    pub fn step(&mut self, key: &str, delta_time: f32) -> Result<State, Error> {
-        match key {
+    pub fn contains(&mut self, coordinate: Coordinate) -> bool {
+        self.sprite.contains(coordinate)
+    }
+
+    pub fn step(&mut self, key: &str, delta_time: f32) -> Option<Coordinate> {
+        // moving the sprite
+        let result: Result<State, Error> = match key {
             "left" => self.sprite.move_left(delta_time),
             "right" => self.sprite.move_right(delta_time),
-            _ => Ok(State::Null),
+            _ => return None,
         };
-        Ok(State::Null)
+        // dealing with the movement result
+        return match result {
+            Ok(state) => match state {
+                State::Collided(coordinate) => Some(coordinate),
+                _ => None,
+            },
+            Err(_) => None,
+        };
     }
 
     pub fn head(&self) -> Coordinate {

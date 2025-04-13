@@ -208,7 +208,6 @@ impl Sprite {
             // reassigning to its starting position
             let new_step = self.bounding_box.far_top;
             self.exact_y = self.bounding_box.far_top as f32;
-            //self.exact_y -= self.exact_y; // 0
             new_step
         } else {
             step
@@ -218,7 +217,6 @@ impl Sprite {
             for col in self.bounding_box.far_left..=self.bounding_box.far_right {
                 let future_coordinate = (col, self.bounding_box.far_top - step);
                 if engine.is_on(&future_coordinate) {
-                    //self.exact_y += offset; // reseting the offset
                     return Ok(State::Collided(future_coordinate));
                 }
             }

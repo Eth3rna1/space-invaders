@@ -58,6 +58,9 @@ fn main() -> Result<(), Error> {
         }
         delta_time = (Instant::now() - start).as_secs_f32();
     }
-    println!("You finished the game in: {:?}\n", Instant::now() - game_timer);
+    println!(
+        "You finished the game in: {:?}\n",
+        Instant::now() - game_timer
+    );
     Ok(())
 }
