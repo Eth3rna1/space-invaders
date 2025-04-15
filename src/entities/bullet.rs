@@ -69,7 +69,10 @@ impl Bullet {
         };
         return match result {
             Ok(state) => match state {
-                State::Collided(coordinate) => Some(coordinate),
+                State::Collided(coordinate) => {
+                    //self.sprite.destroy();
+                    Some(coordinate)
+                }
                 _ => None,
             },
             Err(error) => match error.kind() {
@@ -80,6 +83,10 @@ impl Bullet {
                 _ => None,
             },
         };
+    }
+
+    pub fn is_destroyed(&self) -> bool {
+        self.sprite.is_destroyed()
     }
 
     pub fn destroy(&mut self) {

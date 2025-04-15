@@ -18,10 +18,11 @@ enum Direction {
 
 #[derive(Debug, Clone)]
 pub struct Speedster {
-    sprite: Sprite,
-    direction: Direction,
     width: usize,
     is_dead: bool,
+    sprite: Sprite,
+    direction: Direction,
+    is_initialized: bool,
 }
 
 impl Speedster {
@@ -41,19 +42,44 @@ impl Speedster {
             sprite,
             direction,
             is_dead: false,
+            is_initialized: false,
         })
+    }
+
+    pub fn x(&self) -> usize {
+        self.sprite.far_left()
+    }
+
+    pub fn head(&self) -> Coordinate {
+        (
+            (self.sprite.far_right() - (self.sprite.far_right() - self.sprite.far_left()) / 2),
+            self.sprite.far_bottom() + 1,
+        )
     }
 
     pub fn is_dead(&self) -> bool {
         self.is_dead
     }
 
+    pub fn is_spawned(&self) -> bool {
+        self.sprite.is_spawned()
+    }
+
+    pub fn is_initialized(&self) -> bool {
+        self.is_initialized
+    }
+
     pub fn spawn_or_respawn(&mut self) -> Result<(), Error> {
         if self.sprite.is_spawned() {
             return Ok(());
         }
-        let _ = self.sprite.spawn()?;
-        Ok(())
+        return match self.sprite.spawn() {
+            Ok(_) => {
+                self.is_initialized = true;
+                Ok(())
+            }
+            Err(err) => Err(err),
+        };
     }
 
     pub fn contains(&self, coordinate: Coordinate) -> bool {

@@ -31,7 +31,7 @@ pub(crate) fn log(data: String) {
             .create(true)
             .open(r"C:\Users\gmend\Rust\lab\spaceinvaders\logs.txt")
         {
-            let _ = writeln!(file, "{:?}", data);
+            let _ = writeln!(file, "{}", data);
         }
         Ok(())
     });

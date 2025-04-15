@@ -23,6 +23,19 @@ impl Shooter {
         })
     }
 
+    pub fn x(&self) -> usize {
+        self.sprite.far_left()
+    }
+
+    pub fn xs(&self) -> [usize; 3] {
+        let mut x: [usize; 3] = [0, 0, 0];
+        let fl = self.sprite.far_left();
+        x[0] = fl;
+        x[1] = fl - 1;
+        x[2] = fl - 2;
+        x
+    }
+
     pub fn spawn(&mut self) {
         let _ = self.sprite.spawn();
     }

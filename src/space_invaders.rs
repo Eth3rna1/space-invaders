@@ -2,13 +2,17 @@ use crate::engine::sprite::State;
 use crate::engine::Coordinate;
 use crate::engine::Engine;
 use crate::entities::{
-    Bullet, Shooter, Speedster, {farthest_left_alien, farthest_right_alien, Aliens},
+    Bullet, Shooter, Speedster,
+    {
+        farthest_left_alien, farthest_right_alien, find_alien_and_destroy, spawn_aliens, Alien,
+        Direction,
+    },
 };
 use crate::errors::{Error, ErrorKind};
 use crate::listener::get_key;
 use crate::utils;
 use crate::{
-    ALIEN_COUNT, ALIEN_STEP_PER_DELTA, BACKGROUND_CHAR, BULLET_STEP_PER_DELTA, PIXEL_CHAR,
+    ALIEN_COL_COUNT, ALIEN_STEP_PER_DELTA, BACKGROUND_CHAR, BULLET_STEP_PER_DELTA, PIXEL_CHAR,
     SHOOTER_STEP_PER_DELTA, SPEEDSTER_STEP_PER_DELTA,
 };
 
@@ -17,19 +21,24 @@ use std::rc::Rc;
 
 #[derive(Clone, Debug)]
 pub struct SpaceInvaders {
-    pub(crate) aliens: Aliens,
+    //pub(crate) aliens: Aliens,
+    pub(crate) aliens: Vec<Alien>,
+    pub(crate) alien_xd: f32,
+    pub(crate) alien_direction: Direction,
     pub(crate) game_over: bool,
     pub(crate) shooter: Shooter,
     pub(crate) key: Option<String>,
     pub(crate) bullets: Vec<Bullet>,
     pub(crate) speedster: Speedster,
     pub(crate) engine: Rc<RefCell<Engine>>,
-    won: bool,
+    pub(crate) width: usize,
+    pub(crate) won: bool,
 }
 
 impl SpaceInvaders {
     pub fn new(dimensions: (usize, usize)) -> Result<Self, Error> {
         let engine = Engine::new(dimensions).as_rc();
+        let width = { engine.borrow().width };
         let shooter: Shooter = {
             let position: Vec<Coordinate> = {
                 let eng = engine.borrow();
@@ -42,12 +51,15 @@ impl SpaceInvaders {
             };
             Shooter::new(engine.clone(), position, SHOOTER_STEP_PER_DELTA)?
         };
-        let aliens: Aliens = Aliens::new(engine.clone(), ALIEN_COUNT, ALIEN_STEP_PER_DELTA)?;
+        //let aliens: Aliens = Aliens::new(engine.clone(), ALIEN_COUNT, ALIEN_STEP_PER_DELTA)?;
         let speedster: Speedster = Speedster::new(engine.clone(), SPEEDSTER_STEP_PER_DELTA)?;
         Ok(Self {
+            aliens: spawn_aliens(engine.clone(), ALIEN_COL_COUNT, ALIEN_STEP_PER_DELTA)?,
+            alien_xd: 0.0,
             engine,
-            aliens,
+            width,
             shooter,
+            alien_direction: Direction::Right,
             key: None,
             speedster,
             won: false,
@@ -58,11 +70,13 @@ impl SpaceInvaders {
 
     pub fn set_up(&mut self) {
         utils::clear();
-        self.aliens.spawn();
+        for mut alien in &mut self.aliens {
+            let _ = alien.spawn();
+        }
         self.shooter.spawn();
     }
 
-    /// Memoizes the key pressed in an instant
+    /// Memoizes the key pressed
     pub fn handle_input(&mut self) {
         self.key = get_key();
     }
@@ -91,33 +105,102 @@ impl SpaceInvaders {
         }
     }
 
-    /// moving the aliens
+    /// moving aliens
     pub fn _move_aliens(&mut self, delta_time: f32) {
-        if let Some(coordinate) = self.aliens.step(delta_time) {
-            // perhaps hits a bullet
-            let mut bullets_to_destroy: Vec<usize> = Vec::new();
-            for i in 0..self.bullets.len() {
-                let mut bullet = &mut self.bullets[i];
-                if !bullet.is_alien_bullet() && bullet.contains(coordinate) {
-                    bullet.destroy();
-                    bullets_to_destroy.push(i);
+        if self.aliens.is_empty() {
+            return;
+        }
+        let offset: f32 = ALIEN_STEP_PER_DELTA * delta_time;
+        let step = (self.alien_xd + offset) as usize - self.alien_xd as usize;
+        if step == 0 {
+            self.alien_xd += offset;
+            return;
+        }
+        self.alien_xd = 0.0;
+        match self.alien_direction {
+            Direction::Left => {
+                if farthest_left_alien(&self.aliens).far_left() == 0 {
+                    self.alien_direction = Direction::Right;
+                    return;
+                }
+                for a in (0..self.aliens.len()).rev() {
+                    // making the step negative to move left
+                    if let Some(coordinate) = self.aliens[a].step(0 - step as i32) {
+                        self.aliens[a].destroy();
+                        let _ = self.aliens.remove(a);
+                        // checking for bullet collisions
+                        for i in (0..self.bullets.len()).rev() {
+                            if self.bullets[i].contains(coordinate) {
+                                self.bullets[i].destroy();
+                            }
+                        }
+                    }
                 }
             }
-            for i in bullets_to_destroy {
-                let _ = self.bullets.remove(i);
+            Direction::Right => {
+                if farthest_right_alien(&self.aliens).far_right() == self.width - 1 {
+                    self.alien_direction = Direction::Left;
+                    return;
+                }
+                for a in (0..self.aliens.len()).rev() {
+                    // making the step negative to move left
+                    if let Some(coordinate) = self.aliens[a].step(step as i32) {
+                        self.aliens[a].destroy();
+                        let _ = self.aliens.remove(a);
+                        // checking for bullet collisions
+                        for i in (0..self.bullets.len()).rev() {
+                            if self.bullets[i].contains(coordinate) {
+                                self.bullets[i].destroy();
+                                let _ = self.bullets.remove(i);
+                            }
+                        }
+                    }
+                }
             }
+        }
+        // getting the aliens to shoot at the player
+        let alien_in_same_x: &Alien = {
+            let shooter_xs = self.shooter.xs();
+            let mut aliens_with_same_x: Vec<&Alien> = Vec::new();
+            for alien in self.aliens.iter() {
+                //if shooter_x == alien.x() {
+                if shooter_xs.contains(&alien.x()) {
+                    aliens_with_same_x.push(alien);
+                }
+            }
+            if aliens_with_same_x.is_empty() {
+                // exits the function
+                return;
+            }
+            let mut farthest_down: &Alien = &aliens_with_same_x[0];
+            for alien in aliens_with_same_x.iter() {
+                if alien.far_bottom() > farthest_down.far_bottom() {
+                    farthest_down = alien
+                }
+            }
+            farthest_down
+        };
+        if let Ok(mut b) = Bullet::new(
+            self.engine.clone(),
+            alien_in_same_x.head(),
+            BULLET_STEP_PER_DELTA,
+        ) {
+            let _ = b.spawn();
+            self.bullets.push(b.to_alien_bullet());
         }
     }
 
     /// moving all bullets
     pub fn _move_bullets(&mut self, delta_time: f32) {
-        let mut bullets_to_destroy: Vec<usize> = Vec::new();
         for i in 0..self.bullets.len() {
+            if self.bullets[i].is_destroyed() {
+                continue;
+            }
             if let Some(coordinate) = self.bullets[i].step(delta_time) {
                 // coordinate of the sprite it collided with
-                if self.aliens.find_and_destroy(coordinate) {
+                //if self.aliens.find_and_destroy(coordinate) {
+                if find_alien_and_destroy(&mut self.aliens, coordinate) {
                     self.bullets[i].destroy();
-                    bullets_to_destroy.push(i);
                 } else if self.shooter.contains(coordinate) {
                     // an alien bullet that hit the player
                     self.game_over = true;
@@ -126,7 +209,60 @@ impl SpaceInvaders {
                     // speedster vs the player in the end game
                     self.game_over = true;
                     self.won = true;
+                } else {
+                    // collided with another bullet
+                    for a in 0..self.bullets.len() {
+                        if self.bullets[a].is_destroyed() {
+                            continue;
+                        }
+                        let mut bullet = &mut self.bullets[a];
+                        if bullet.contains(coordinate) && bullet.is_alien_bullet() {
+                            bullet.destroy();
+                            self.bullets[i].destroy();
+                        }
+                    }
                 }
+            }
+        }
+        for i in self.bullets.len()..0 {
+            if self.bullets[i].is_destroyed() {
+                let _ = self.bullets.remove(i);
+            }
+        }
+    }
+
+    /// Spawns the speedster once all aliens have been killed
+    pub fn _spawn_speedster_if_end_game(&mut self, delta_time: f32) {
+        if !self.aliens.is_empty() {
+            // not yet an end game either because
+            // aliens are still alive or there are
+            // bullets on the plane
+            return;
+        }
+        //if !self.bullets.is_empty() && !self.speedster.is_initialized() {
+        if self
+            .bullets
+            .iter()
+            .any(|b| !b.is_destroyed() && !b.is_alien_bullet())
+            && !self.speedster.is_initialized()
+        {
+            return;
+        }
+        let _ = self.speedster.spawn_or_respawn();
+        if let Some(coordinate) = self.speedster.step(delta_time) {
+            return;
+        }
+        //if self.speedster.x() == self.shooter.x() {
+        if self.shooter.xs().iter().any(|x| *x == self.speedster.x()) {
+            // sprites are in the same x position, means the sprite should shoot
+            if let Ok(mut b) = Bullet::new(
+                self.engine.clone(),
+                self.speedster.head(),
+                BULLET_STEP_PER_DELTA,
+            ) {
+                let mut bullet = b.to_alien_bullet();
+                let _ = bullet.spawn();
+                self.bullets.push(bullet);
             }
         }
     }
@@ -140,6 +276,11 @@ impl SpaceInvaders {
             // moves aliens, taking into account collisions with bullets,
             // if collides with a bullet, both the alien and bullet get destroyed
             self._move_aliens(delta_time);
+        }
+        {
+            // If all aliens are dead, then this sprite will spawn
+            // and an end game will commence
+            self._spawn_speedster_if_end_game(delta_time);
         }
         {
             // moves bullets, taking into account collisions with other sprites.
@@ -160,7 +301,6 @@ impl SpaceInvaders {
     }
 
     pub fn game_over(&self) -> bool {
-        //self.aliens.is_empty() && self.speedster.is_dead() || self.game_over
-        self.aliens.is_empty() || self.game_over
+        self.aliens.is_empty() && self.speedster.is_dead() || self.game_over
     }
 }
