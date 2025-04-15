@@ -1,4 +1,4 @@
-# Space Invaders in ASCII (CURRENTLY UNDER CONSTRUCTION)
+# Space Invaders in ASCII with a twist
 
 ## About
-A basic recreation of the space invaders game via the terminal rendered with ASCII characters
+A basic recreation of the space invaders game in the terminal rendered with ASCII characters
