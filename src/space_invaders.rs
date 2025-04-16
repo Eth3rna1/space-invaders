@@ -33,6 +33,8 @@ pub struct SpaceInvaders {
     pub(crate) engine: Rc<RefCell<Engine>>,
     pub(crate) width: usize,
     pub(crate) won: bool,
+    pub(crate) game_paused: bool,
+    pub(crate) game_initialized: bool,
 }
 
 impl SpaceInvaders {
@@ -64,6 +66,8 @@ impl SpaceInvaders {
             speedster,
             won: false,
             game_over: false,
+            game_paused: true,
+            game_initialized: false,
             bullets: Vec::new(),
         })
     }
@@ -78,7 +82,13 @@ impl SpaceInvaders {
 
     /// Memoizes the key pressed
     pub fn handle_input(&mut self) {
-        self.key = get_key();
+        self.key = if let Some(key) = get_key() {
+            self.game_initialized = true;
+            self.game_paused = if key == "p" { true } else { false };
+            Some(key)
+        } else {
+            None
+        }
     }
 
     /// checking key pressed and spawning bullets if a space is pressed
@@ -268,6 +278,9 @@ impl SpaceInvaders {
     }
 
     pub fn update(&mut self, delta_time: f32) {
+        if self.game_paused {
+            return;
+        }
         {
             // sends the key to the shooter or spawns new bullets
             self._update_upon_key_press(delta_time);
@@ -293,6 +306,11 @@ impl SpaceInvaders {
     }
 
     pub fn draw(&mut self) {
+        if !self.game_initialized {
+            println!("Welcome to Space Invaders! Press any game key to start!");
+        } else if self.game_paused {
+            println!("Game is paused. Press any game key to continue...");
+        }
         print!(
             "{}",
             self.engine.borrow().display(PIXEL_CHAR, BACKGROUND_CHAR)
