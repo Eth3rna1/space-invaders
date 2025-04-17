@@ -42,7 +42,7 @@ pub const SPEEDSTER_BULLET_PER_DELTA: f32 = 2.0;
 fn main() -> Result<(), Error> {
     let mut game = SpaceInvaders::new(PLANE_DIMENSIONS)?;
     game.set_up();
-    let mut delta_time: f32 = 1.0;
+    let mut delta_time: f32 = 0.0;
     let game_timer = Instant::now();
     loop {
         let start = Instant::now();
