@@ -21,7 +21,6 @@ use std::rc::Rc;
 
 #[derive(Clone, Debug)]
 pub struct SpaceInvaders {
-    //pub(crate) aliens: Aliens,
     pub(crate) aliens: Vec<Alien>,
     pub(crate) alien_xd: f32,
     pub(crate) alien_direction: Direction,
@@ -33,6 +32,7 @@ pub struct SpaceInvaders {
     pub(crate) engine: Rc<RefCell<Engine>>,
     pub(crate) width: usize,
     pub(crate) won: bool,
+    pub(crate) game_quit: bool,
     pub(crate) game_paused: bool,
     pub(crate) game_initialized: bool,
 }
@@ -60,6 +60,7 @@ impl SpaceInvaders {
             alien_xd: 0.0,
             engine,
             width,
+            game_quit: false,
             shooter,
             alien_direction: Direction::Right,
             key: None,
@@ -85,6 +86,9 @@ impl SpaceInvaders {
         self.key = if let Some(key) = get_key() {
             self.game_initialized = true;
             self.game_paused = if key == "p" { true } else { false };
+            if key == "esc" {
+                self.game_quit = true;
+            }
             Some(key)
         } else {
             None
@@ -319,6 +323,6 @@ impl SpaceInvaders {
     }
 
     pub fn game_over(&self) -> bool {
-        self.aliens.is_empty() && self.speedster.is_dead() || self.game_over
+        self.aliens.is_empty() && self.speedster.is_dead() || self.game_over || self.game_quit
     }
 }
