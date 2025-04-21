@@ -32,10 +32,6 @@ impl Bullet {
         self.sprite.coordinates[0]
     }
 
-    pub fn exact_y(&self) -> f32 {
-        self.sprite.exact_y()
-    }
-
     pub fn far_top(&self) -> usize {
         self.sprite.far_top()
     }

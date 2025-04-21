@@ -72,15 +72,15 @@ impl Alien {
         Ok(())
     }
 
-    pub fn offset_x(&mut self, offset: f32) {
-        self.sprite.offset_exact_x(offset);
-    }
+    //pub fn offset_x(&mut self, offset: f32) {
+    //    self.sprite.offset_exact_x(offset);
+    //}
 
     pub fn step(&mut self, step: i32) -> Option<Coordinate> {
         if self.sprite.is_destroyed() {
             return None;
         }
-        self.sprite.offset_exact_x(step as f32);
+        //self.sprite.offset_exact_x(step as f32);
         return match self.sprite.move_relative_x(step) {
             Ok(state) => {
                 if let State::Collided(coordinate) = state {
