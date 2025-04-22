@@ -325,4 +325,8 @@ impl SpaceInvaders {
     pub fn game_over(&self) -> bool {
         self.aliens.is_empty() && self.speedster.is_dead() || self.game_over || self.game_quit
     }
+
+    pub fn won(&self) -> bool {
+        self.won
+    }
 }

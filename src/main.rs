@@ -54,6 +54,10 @@ fn main() -> Result<(), Error> {
         }
         delta_time = (Instant::now() - start).as_secs_f32();
     }
+    match game.won() {
+        true => println!("You won :)\n"),
+        false => println!("You lost :(\n"),
+    }
     println!(
         "You finished the game in: {:?}\n",
         Instant::now() - game_timer
