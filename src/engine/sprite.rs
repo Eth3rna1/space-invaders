@@ -21,10 +21,10 @@ pub enum State {
 /// A group of pixels
 #[derive(Debug, Clone)]
 pub struct Sprite {
-    pub(crate) engine: Rc<RefCell<Engine>>,
-    pub(crate) coordinates: Vec<Coordinate>,
+    engine: Rc<RefCell<Engine>>,
+    coordinates: Vec<Coordinate>,
     // one velocity for both axises
-    pub(crate) velocity: f32,
+    velocity: f32,
     pub(crate) bounding_box: BoundingBox,
     is_spawned: bool,
     is_destroyed: bool,
@@ -77,6 +77,22 @@ impl Sprite {
         })
     }
 
+    pub fn engine(&self) -> Rc<RefCell<Engine>> {
+        self.engine.clone()
+    }
+
+    pub fn coordinates<'c>(&'c self) -> &'c [Coordinate] {
+        &self.coordinates
+    }
+
+    pub fn coordinates_mut<'c>(&'c mut self) -> &'c mut [Coordinate] {
+        &mut self.coordinates
+    }
+
+    pub fn set_velocity(&mut self, velocity: f32) {
+        self.velocity = velocity;
+    }
+
     pub fn bounding_box(&self) -> BoundingBox {
         self.bounding_box.clone()
     }
@@ -103,6 +119,10 @@ impl Sprite {
 
     pub fn far_bottom(&self) -> usize {
         self.bounding_box.far_bottom
+    }
+
+    pub fn recalc_bounding_box(&mut self) {
+        self.bounding_box = BoundingBox::from(&self.coordinates);
     }
 
     pub fn contains(&self, coordinate: Coordinate) -> bool {
@@ -159,7 +179,6 @@ impl Sprite {
         {
             // error checking if the sprite is already touching the boundry
             if self.bounding_box.far_top == 0 {
-                self.fy = 0.0;
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
                     "Hit the far right boundry",
@@ -223,7 +242,6 @@ impl Sprite {
         {
             // error checking if the sprite is already touching the boundry
             if self.bounding_box.far_left == 0 {
-                self.fx = 0.0;
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
                     "Hit the far right boundry",
@@ -287,7 +305,6 @@ impl Sprite {
         {
             // error checking if the sprite is already touching the boundry
             if self.bounding_box.far_right == engine.width - 1 {
-                self.fx = (engine.width - 1) as f32;
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
                     "Hit the far right boundry",
@@ -359,7 +376,6 @@ impl Sprite {
         {
             // error checking if the sprite is already touching the boundry
             if self.bounding_box.far_bottom == engine.height - 1 {
-                self.fy = (engine.height - 1) as f32;
                 return Err(Error::new(
                     ErrorKind::OutOfBounds,
                     "Hit the far bottom boundry",
@@ -398,7 +414,7 @@ impl Sprite {
         }
         if engine.collisions() {
             // collision detection
-            for col in self.bounding_box.far_right..=self.bounding_box.far_left {
+            for col in self.bounding_box.far_left..=self.bounding_box.far_right {
                 let future_coordinate = (col, self.bounding_box.far_bottom + step);
                 if engine.is_on(&future_coordinate) {
                     return Ok(State::Collided(future_coordinate));
@@ -421,6 +437,72 @@ impl Sprite {
                 *coordinate = new;
             }
             self.bounding_box.increase_y(step);
+        }
+        Ok(State::Moved)
+    }
+
+    pub fn move_relative_y(&mut self, step: i32) -> Result<State, Error> {
+        if step == 0 {
+            return Ok(State::Null);
+        }
+        let mut engine = self.engine.borrow_mut();
+        {
+            // checking for boundries
+            if self.bounding_box.far_top as i32 + step < 0 && step < 0 {
+                return Err(Error::new(
+                    ErrorKind::OutOfBounds,
+                    format!("Can't move sprite `{:?}` further up", self as *const Self),
+                ));
+            }
+            if self.bounding_box.far_bottom as i32 + step > (engine.height - 1) as i32 && step > 0 {
+                return Err(Error::new(
+                    ErrorKind::OutOfBounds,
+                    format!("Can't move sprite `{:?}` further down", self as *const Self),
+                ));
+            }
+        }
+        if engine.collisions() {
+            // checking for collisions
+            if step > 0 {
+                // positive step, moving right
+                for col in self.bounding_box.far_left..=self.bounding_box.far_right {
+                    let future_coordinate: Coordinate =
+                        (col, (self.bounding_box.far_bottom as i32 + step) as usize);
+                    if engine.is_on(&future_coordinate) {
+                        return Ok(State::Collided(future_coordinate));
+                    }
+                }
+            } else {
+                // negative step, left movement
+                for col in self.bounding_box.far_left..=self.bounding_box.far_right {
+                    let future_coordinate: Coordinate =
+                        (col, (self.bounding_box.far_top as i32 + step) as usize);
+                    if engine.is_on(&future_coordinate) {
+                        return Ok(State::Collided(future_coordinate));
+                    }
+                }
+            }
+        }
+        if self.is_spawned {
+            // reseting the current position
+            for coordinate in self.coordinates.iter() {
+                engine.reset(coordinate);
+            }
+        }
+        {
+            // drawing the new position
+            for coordinate in self.coordinates.iter_mut() {
+                let new = (coordinate.0, (coordinate.1 as i32 + step) as usize);
+                if self.is_spawned {
+                    engine.spawn(new);
+                }
+                *coordinate = new;
+            }
+            if step > 0 {
+                self.bounding_box.increase_y(step as usize);
+            } else {
+                self.bounding_box.decrease_y(step.abs() as usize);
+            }
         }
         Ok(State::Moved)
     }

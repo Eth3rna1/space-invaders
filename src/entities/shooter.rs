@@ -27,6 +27,10 @@ impl Shooter {
         self.sprite.far_left()
     }
 
+    pub fn coordinates(&self) -> &[Coordinate] {
+        self.sprite.coordinates()
+    }
+
     pub fn xs(&self) -> [usize; 3] {
         let mut x: [usize; 3] = [0, 0, 0];
         let fl = self.sprite.far_left();
@@ -69,6 +73,6 @@ impl Shooter {
     }
 
     pub fn destroy(&mut self) {
-        self.sprite.destroy();
+        let _ = self.sprite.destroy();
     }
 }

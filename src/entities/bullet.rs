@@ -29,7 +29,7 @@ impl Bullet {
     }
 
     pub fn position(&self) -> Coordinate {
-        self.sprite.coordinates[0]
+        self.sprite.coordinates()[0]
     }
 
     pub fn far_top(&self) -> usize {

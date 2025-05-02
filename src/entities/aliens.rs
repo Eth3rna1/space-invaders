@@ -76,6 +76,10 @@ impl Alien {
     //    self.sprite.offset_exact_x(offset);
     //}
 
+    pub fn move_y(&mut self, step: i32) -> Result<State, Error> {
+        self.sprite.move_relative_y(step)
+    }
+
     pub fn step(&mut self, step: i32) -> Option<Coordinate> {
         if self.sprite.is_destroyed() {
             return None;
@@ -145,7 +149,7 @@ pub fn spawn_aliens(
                 (pointer + 1, row),
                 (pointer + 2, row),
                 (pointer, row + 1),
-                (pointer + 1, row + 1),
+                //(pointer + 1, row + 1),
                 (pointer + 2, row + 1),
             ];
             collector.push(Alien::new(engine.clone(), position, velocity)?);

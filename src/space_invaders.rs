@@ -31,7 +31,7 @@ pub struct SpaceInvaders {
     pub(crate) speedster: Speedster,
     pub(crate) engine: Rc<RefCell<Engine>>,
     pub(crate) width: usize,
-    pub(crate) won: bool,
+    pub(crate) game_won: bool,
     pub(crate) game_quit: bool,
     pub(crate) game_paused: bool,
     pub(crate) game_initialized: bool,
@@ -53,10 +53,10 @@ impl SpaceInvaders {
             };
             Shooter::new(engine.clone(), position, SHOOTER_STEP_PER_DELTA)?
         };
-        //let aliens: Aliens = Aliens::new(engine.clone(), ALIEN_COUNT, ALIEN_STEP_PER_DELTA)?;
         let speedster: Speedster = Speedster::new(engine.clone(), SPEEDSTER_STEP_PER_DELTA)?;
         Ok(Self {
             aliens: spawn_aliens(engine.clone(), ALIEN_COL_COUNT, ALIEN_STEP_PER_DELTA)?,
+            //aliens: Vec::new(),
             alien_xd: 0.0,
             engine,
             width,
@@ -65,7 +65,7 @@ impl SpaceInvaders {
             alien_direction: Direction::Right,
             key: None,
             speedster,
-            won: false,
+            game_won: false,
             game_over: false,
             game_paused: true,
             game_initialized: false,
@@ -113,6 +113,9 @@ impl SpaceInvaders {
                 }
                 "left" | "right" => {
                     let _ = self.shooter.step(&key, delta_time);
+                    if let Some(coordinate) = self.shooter.step(&key, delta_time) {
+                        self.game_over = true;
+                    }
                 }
                 _ => {}
             }
@@ -154,6 +157,24 @@ impl SpaceInvaders {
             Direction::Right => {
                 if farthest_right_alien(&self.aliens).far_right() == self.width - 1 {
                     self.alien_direction = Direction::Left;
+                    // moving the aliens down for more pressure
+                    for a in 0..self.aliens.len() {
+                        match self.aliens[a].move_y(1) {
+                            Ok(state) => match state {
+                                State::Collided(coordinate) => {
+                                    if self.shooter.contains(coordinate) {
+                                        self.game_over = true;
+                                        return;
+                                    }
+                                }
+                                _ => (),
+                            },
+                            Err(error) => match error.kind() {
+                                ErrorKind::OutOfBounds => todo!(),
+                                _ => (),
+                            },
+                        }
+                    }
                     return;
                 }
                 for a in (0..self.aliens.len()).rev() {
@@ -221,8 +242,13 @@ impl SpaceInvaders {
                     return;
                 } else if self.speedster.contains(coordinate) {
                     // speedster vs the player in the end game
-                    self.game_over = true;
-                    self.won = true;
+                    //self.game_over = true;
+                    //self.speedster.destroy();
+                    self.speedster.was_hit();
+                    if self.speedster.is_dead() {
+                        self.game_won = true;
+                    }
+                    self.bullets[i].destroy();
                 } else {
                     // collided with another bullet
                     for a in 0..self.bullets.len() {
@@ -238,11 +264,41 @@ impl SpaceInvaders {
                 }
             }
         }
-        for i in self.bullets.len()..0 {
+        for i in (0..self.bullets.len()).rev() {
             if self.bullets[i].is_destroyed() {
                 let _ = self.bullets.remove(i);
             }
         }
+    }
+
+    fn __if_sprite_contained_coordinate_destroyed(&mut self, coordinate: Coordinate) -> bool {
+        if find_alien_and_destroy(&mut self.aliens, coordinate) {
+            // function already does the destroying
+            return true;
+        } else if self.shooter.contains(coordinate) {
+            // an alien bullet that hit the player
+            self.game_over = true;
+            return true;
+        } else if self.speedster.contains(coordinate) {
+            // speedster vs the player in the end game
+            //self.game_over = true;
+            //self.speedster.destroy();
+            self.speedster.was_hit();
+            self.game_won = true;
+            return true;
+        } else {
+            // collided with bullet
+            for a in 0..self.bullets.len() {
+                if self.bullets[a].is_destroyed() {
+                    continue;
+                }
+                if self.bullets[a].contains(coordinate) {
+                    self.bullets[a].destroy();
+                    return true;
+                }
+            }
+        }
+        false
     }
 
     /// Spawns the speedster once all aliens have been killed
@@ -253,32 +309,69 @@ impl SpaceInvaders {
             // bullets on the plane
             return;
         }
+        let stages = self.speedster.stages();
+        let stages_completed = self.speedster.stages_completed();
+        if [0, 1].contains(&stages_completed) {
+            println!(
+                "{:^100}",
+                format!(
+                    "SPEEDSTER LIVES: {} / {}",
+                    stages - stages_completed,
+                    stages
+                )
+            );
+        } else {
+            // in stage 3
+            match self.speedster.stage_3_phase() {
+                0 => (),
+                1 => println!("{:^100}", "Hmmmm? It seems like its snowing..."),
+                2 => println!("{:^100}", "Watch out for the falling blocks!!!"),
+                3 => println!("{:^100}", "Quick! Shoot him!"),
+                _ => panic!("Invalid phase was returned"),
+            }
+        }
         //if !self.bullets.is_empty() && !self.speedster.is_initialized() {
         if self
             .bullets
             .iter()
             .any(|b| !b.is_destroyed() && !b.is_alien_bullet())
-            && !self.speedster.is_initialized()
+            && !self.speedster.is_spawned()
         {
+            // if any bullet is not destroyed and it happens to be the players bullet
+            // then the sprite will not be spawned
             return;
         }
-        let _ = self.speedster.spawn_or_respawn();
-        if let Some(coordinate) = self.speedster.step(delta_time) {
+        self.speedster.spawn();
+        if let Some(coordinate) = self.speedster.step(delta_time, &mut self.bullets) {
+            if self.__if_sprite_contained_coordinate_destroyed(coordinate) {
+                return;
+            }
+            //if self.shooter.contains(coordinate) {
+            //    self.game_over = true;
+            //    return;
+            //}
+            //self.speedster.destroy();
+            //self.speedster.reset_position();
+            //self.speedster.next_stage();
+            if self.speedster.is_dead() {
+                self.game_won = true;
+                //return;
+            }
             return;
         }
         //if self.speedster.x() == self.shooter.x() {
-        if self.shooter.xs().iter().any(|x| *x == self.speedster.x()) {
-            // sprites are in the same x position, means the sprite should shoot
-            if let Ok(mut b) = Bullet::new(
-                self.engine.clone(),
-                self.speedster.head(),
-                BULLET_STEP_PER_DELTA,
-            ) {
-                let mut bullet = b.to_alien_bullet();
-                let _ = bullet.spawn();
-                self.bullets.push(bullet);
-            }
-        }
+        //if self.shooter.xs().iter().any(|x| *x == self.speedster.x()) {
+        //    // sprites are in the same x position, means the sprite should shoot
+        //    if let Ok(mut b) = Bullet::new(
+        //        self.engine.clone(),
+        //        self.speedster.head(),
+        //        BULLET_STEP_PER_DELTA,
+        //    ) {
+        //        let mut bullet = b.to_alien_bullet();
+        //        let _ = bullet.spawn();
+        //        self.bullets.push(bullet);
+        //    }
+        //}
     }
 
     pub fn update(&mut self, delta_time: f32) {
@@ -290,9 +383,10 @@ impl SpaceInvaders {
             self._update_upon_key_press(delta_time);
         }
         {
-            // moves aliens, taking into account collisions with bullets,
-            // if collides with a bullet, both the alien and bullet get destroyed
+            //// moves aliens, taking into account collisions with bullets,
+            //// if collides with a bullet, both the alien and bullet get destroyed
             self._move_aliens(delta_time);
+            //self.aliens = Vec::new();
         }
         {
             // If all aliens are dead, then this sprite will spawn
@@ -322,11 +416,11 @@ impl SpaceInvaders {
         utils::refresh();
     }
 
-    pub fn game_over(&self) -> bool {
-        self.aliens.is_empty() && self.speedster.is_dead() || self.game_over || self.game_quit
+    pub fn game_over(&mut self) -> bool {
+        (self.aliens.is_empty() && self.speedster.is_dead()) || self.game_over || self.game_quit
     }
 
     pub fn won(&self) -> bool {
-        self.won
+        self.game_won
     }
 }

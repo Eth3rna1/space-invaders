@@ -1,5 +1,7 @@
 mod aliens;
 mod bullet;
+mod events;
+mod obstacle;
 mod shooter;
 mod speedster;
 
@@ -8,5 +10,7 @@ pub use aliens::{
     Direction,
 };
 pub use bullet::Bullet;
+pub use events::SnowEvent;
+pub use obstacle::Obstacle;
 pub use shooter::Shooter;
 pub use speedster::Speedster;

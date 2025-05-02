@@ -33,10 +33,13 @@ const PLANE_DIMENSIONS: Coordinate = (100, 25); // (WIDTH, HEIGHT)
 pub const PIXEL_CHAR: char = '⨊';
 pub const BACKGROUND_CHAR: char = '.';
 
+pub const OBSTACLE_WAIT_TIME: f32 = 2.0; // seconds
+pub const OBSTACLE_SPEED: f32 = 80.0;
+
 pub const ALIEN_STEP_PER_DELTA: f32 = 15.0;
 pub const BULLET_STEP_PER_DELTA: f32 = 9.0;
 pub const SHOOTER_STEP_PER_DELTA: f32 = 90.0;
-pub const SPEEDSTER_STEP_PER_DELTA: f32 = 95.0;
+pub const SPEEDSTER_STEP_PER_DELTA: f32 = 90.0;
 pub const SPEEDSTER_BULLET_PER_DELTA: f32 = 2.0;
 
 fn main() -> Result<(), Error> {
@@ -54,13 +57,15 @@ fn main() -> Result<(), Error> {
         }
         delta_time = (Instant::now() - start).as_secs_f32();
     }
-    match game.won() {
-        true => println!("You won :)\n"),
-        false => println!("You lost :(\n"),
-    }
-    println!(
-        "You finished the game in: {:?}\n",
+    let msg = match game.won() {
+        true => "You won :)",
+        false => "You lost :(",
+    };
+    println!("{:^100}\n{:^100}", ' ', msg);
+    let time_result = format!(
+        "You finished the game in: {:?}",
         Instant::now() - game_timer
     );
+    println!("{:^100}\n{:^100}\n", ' ', time_result);
     Ok(())
 }
