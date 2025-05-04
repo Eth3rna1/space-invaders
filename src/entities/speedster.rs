@@ -345,7 +345,7 @@ impl Speedster {
                     BULLET_STEP_PER_DELTA,
                 ) {
                     let mut bullet = b.to_alien_bullet();
-                    bullet.spawn();
+                    let _ = bullet.spawn();
                     bullets.push(bullet);
                 }
             }
@@ -360,15 +360,17 @@ impl Speedster {
             EndGameState::Stage3 => self.stage_3(delta_time, bullets),
             EndGameState::Over => None,
         };
-        if self.has_obstruction(&bullets) && self.stage_3_phase() != 3 {
-            if let Ok(b) = Bullet::new(
-                self.sprite.borrow().engine(),
-                self.head(),
-                BULLET_STEP_PER_DELTA,
-            ) {
-                let mut bullet = b.to_alien_bullet();
-                bullet.spawn();
-                bullets.push(bullet);
+        if self.state == EndGameState::Stage1 || self.state == EndGameState::Stage2 {
+            if self.has_obstruction(&bullets) && self.stage_3_phase() != 3 {
+                if let Ok(b) = Bullet::new(
+                    self.sprite.borrow().engine(),
+                    self.head(),
+                    BULLET_STEP_PER_DELTA,
+                ) {
+                    let mut bullet = b.to_alien_bullet();
+                    let _ = bullet.spawn();
+                    bullets.push(bullet);
+                }
             }
         }
         if let Some(coordinate) = result {
