@@ -23,7 +23,7 @@ impl Bullet {
         velocity: f32,
     ) -> Result<Self, Error> {
         Ok(Self {
-            sprite: Sprite::new(engine, vec![position], velocity)?,
+            sprite: Sprite::new(engine, vec![position], velocity, velocity)?,
             is_alien_bullet: false,
         })
     }

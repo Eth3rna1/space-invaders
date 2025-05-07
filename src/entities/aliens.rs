@@ -47,7 +47,7 @@ impl Alien {
         Ok(Self {
             width,
             velocity,
-            sprite: Sprite::new(engine, position, velocity)?,
+            sprite: Sprite::new(engine, position, velocity, velocity)?,
         })
     }
 

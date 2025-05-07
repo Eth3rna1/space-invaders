@@ -45,7 +45,8 @@ impl ZigZagEvent {
         //    sprite.recalc_bounding_box();
         //}
         //let _ = sprite.spawn();
-        sprite.set_velocity(100.0);
+        sprite.set_x_velocity(100.0);
+        sprite.set_y_velocity(100.0);
         sprite.recalc_bounding_box();
         drop(sprite);
         Self {

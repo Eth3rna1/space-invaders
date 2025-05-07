@@ -36,7 +36,7 @@ impl Obstacle {
             spawn_timer: Instant::now(),
             wait_timer: Instant::now(),
             wait_time: OBSTACLE_WAIT_TIME,
-            sprite: Sprite::new(engine, position, velocity)?,
+            sprite: Sprite::new(engine, position, velocity, velocity)?,
             destroy_on_contact: false,
         })
     }
@@ -65,7 +65,8 @@ impl Obstacle {
     }
 
     pub fn set_velocity(&mut self, velocity: f32) {
-        self.sprite.set_velocity(velocity);
+        self.sprite.set_x_velocity(velocity);
+        self.sprite.set_y_velocity(velocity);
     }
 
     pub fn set_wait_time(&mut self, duration: f32) {

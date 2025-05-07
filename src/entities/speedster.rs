@@ -64,7 +64,8 @@ impl Speedster {
         let mut sprite = Rc::new(RefCell::new(Sprite::new(
             engine.clone(),
             vec![(width - 1, 1), (width - 2, 1), (width - 3, 1)],
-            velocity,
+            velocity, // horizontal velocity
+            velocity, // vertical velocity
         )?));
         Ok(Self {
             snow_event: SnowEvent::new(engine.clone()),
@@ -84,7 +85,8 @@ impl Speedster {
     }
 
     pub fn set_velocity(&mut self, v: f32) {
-        self.sprite.borrow_mut().set_velocity(v);
+        self.sprite.borrow_mut().set_x_velocity(v);
+        self.sprite.borrow_mut().set_y_velocity(v);
     }
 
     pub fn x(&self) -> usize {

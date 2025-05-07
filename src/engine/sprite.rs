@@ -24,7 +24,8 @@ pub struct Sprite {
     engine: Rc<RefCell<Engine>>,
     coordinates: Vec<Coordinate>,
     // one velocity for both axises
-    velocity: f32,
+    x_velocity: f32,
+    y_velocity: f32,
     pub(crate) bounding_box: BoundingBox,
     is_spawned: bool,
     is_destroyed: bool,
@@ -38,7 +39,8 @@ impl Sprite {
     pub fn new(
         engine: Rc<RefCell<Engine>>,
         coordinates: Vec<Coordinate>,
-        velocity: f32,
+        x_velocity: f32,
+        y_velocity: f32,
     ) -> Result<Self, Error> {
         {
             //error cases
@@ -67,7 +69,8 @@ impl Sprite {
         let bounding_box = BoundingBox::from(&coordinates);
         Ok(Self {
             engine,
-            velocity,
+            x_velocity,
+            y_velocity,
             coordinates,
             bounding_box,
             is_spawned: false,
@@ -89,8 +92,12 @@ impl Sprite {
         &mut self.coordinates
     }
 
-    pub fn set_velocity(&mut self, velocity: f32) {
-        self.velocity = velocity;
+    pub fn set_x_velocity(&mut self, velocity: f32) {
+        self.x_velocity = velocity;
+    }
+
+    pub fn set_y_velocity(&mut self, velocity: f32) {
+        self.y_velocity = velocity;
     }
 
     pub fn bounding_box(&self) -> BoundingBox {
@@ -129,8 +136,12 @@ impl Sprite {
         self.coordinates.contains(&coordinate)
     }
 
-    pub fn velocity(&self) -> f32 {
-        self.velocity
+    pub fn x_velocity(&self) -> f32 {
+        self.x_velocity
+    }
+
+    pub fn y_velocity(&self) -> f32 {
+        self.y_velocity
     }
 
     pub fn fx(&self) -> f32 {
@@ -185,7 +196,7 @@ impl Sprite {
                 ));
             }
         }
-        let offset: f32 = self.velocity * delta_time;
+        let offset: f32 = self.y_velocity * delta_time;
         let step: usize = {
             // obtaining the difference between the new X position and the current X position
             let calc = (self.fy + offset) as usize - self.fy as usize;
@@ -248,7 +259,7 @@ impl Sprite {
                 ));
             }
         }
-        let offset: f32 = self.velocity * delta_time;
+        let offset: f32 = self.x_velocity * delta_time;
         let step: usize = {
             // obtaining the difference between the new X position and the current X position
             let calc = (self.fx + offset) as usize - self.fx as usize;
@@ -311,7 +322,7 @@ impl Sprite {
                 ));
             }
         }
-        let offset: f32 = self.velocity * delta_time;
+        let offset: f32 = self.x_velocity * delta_time;
         let step: usize = {
             // obtaining the difference between the new X position and the current X position
             let calc = (self.fx + offset) as usize - self.fx as usize;
@@ -382,7 +393,7 @@ impl Sprite {
                 ));
             }
         }
-        let offset: f32 = self.velocity * delta_time;
+        let offset: f32 = self.y_velocity * delta_time;
         let step: usize = {
             let calc = (self.fy + offset) as usize - self.fy as usize;
             if calc == 0 {

@@ -19,7 +19,7 @@ impl Shooter {
         velocity: f32,
     ) -> Result<Self, Error> {
         Ok(Self {
-            sprite: Sprite::new(engine, position, velocity)?,
+            sprite: Sprite::new(engine, position, velocity, velocity)?,
         })
     }
 
