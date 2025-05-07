@@ -1,9 +1,6 @@
 ## Changes
 
-* Got rid of keyboard input delay for windos while maintaining OS compatability.
-    - Used the `winapi` crate
-
-* Included the `winapi` crate into the project
+* Got rid of the `rand` crate, reducing compiling time
 
 ## To-Do:
 

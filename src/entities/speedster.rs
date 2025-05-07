@@ -8,7 +8,7 @@ use crate::entities::Bullet;
 use crate::entities::Obstacle;
 use crate::errors::{Error, ErrorKind};
 use crate::utils;
-use crate::utils::rand_num;
+//use crate::utils::rand_num;
 
 use crate::BULLET_STEP_PER_DELTA;
 use crate::OBSTACLE_SPEED;

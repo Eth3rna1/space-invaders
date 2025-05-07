@@ -20,18 +20,18 @@ pub fn sleep(n: f64) {
     thread::sleep(Duration::from_secs_f64(n));
 }
 
-pub fn rand_num(lowest: usize, highest: usize) -> usize {
-    use rand::Rng;
-
-    if lowest > highest {
-        panic!("Invalid range for randomization: {}..{}", lowest, highest);
-    }
-    if lowest == highest {
-        return lowest;
-    }
-    let mut rng = rand::thread_rng();
-    rng.gen_range(lowest..=highest)
-}
+//pub fn rand_num(lowest: usize, highest: usize) -> usize {
+//    use rand::Rng;
+//
+//    if lowest > highest {
+//        panic!("Invalid range for randomization: {}..{}", lowest, highest);
+//    }
+//    if lowest == highest {
+//        return lowest;
+//    }
+//    let mut rng = rand::thread_rng();
+//    rng.gen_range(lowest..=highest)
+//}
 
 pub(crate) fn log(data: String) {
     use std::fs::OpenOptions;
