@@ -49,6 +49,7 @@ pub const SPEEDSTER_STEP_PER_DELTA: f32 = 90.0;
 pub const SPEEDSTER_BULLET_PER_DELTA: f32 = 2.0;
 
 fn main() -> Result<(), Error> {
+    terminal::enable_raw_mode().expect("Error at enabling raw mode");
     let mut game = SpaceInvaders::new(PLANE_DIMENSIONS)?;
     game.set_up();
     let mut delta_time: f32 = 0.0;
@@ -73,5 +74,6 @@ fn main() -> Result<(), Error> {
         Instant::now() - game_timer
     );
     println!("{:^100}\n{:^100}\n", ' ', time_result);
+    terminal::disable_raw_mode().expect("Error at disabling raw mode");
     Ok(())
 }

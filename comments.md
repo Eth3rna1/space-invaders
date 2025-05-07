@@ -1,6 +1,6 @@
 ## Changes
 
-* Got rid of the `rand` crate, reducing compiling time
+* Enabling and disabling terminal raw mode
 
 ## To-Do:
 
