@@ -15,7 +15,7 @@ use engine::{
     Coordinate, Engine,
 };
 use errors::{Error, ErrorKind};
-use listener::{get_key, key_pressed};
+//use listener::{get_key, key_pressed};
 use space_invaders::SpaceInvaders;
 
 use std::cell::RefCell;
@@ -38,7 +38,13 @@ pub const OBSTACLE_SPEED: f32 = 80.0;
 
 pub const ALIEN_STEP_PER_DELTA: f32 = 15.0;
 pub const BULLET_STEP_PER_DELTA: f32 = 9.0;
-pub const SHOOTER_STEP_PER_DELTA: f32 = 90.0;
+
+//pub const SHOOTER_STEP_PER_DELTA: f32 = 90.0;
+pub const SHOOTER_STEP_PER_DELTA: f32 = if cfg!(target_os = "windows") {
+    30.0
+} else {
+    90.0
+};
 pub const SPEEDSTER_STEP_PER_DELTA: f32 = 90.0;
 pub const SPEEDSTER_BULLET_PER_DELTA: f32 = 2.0;
 
