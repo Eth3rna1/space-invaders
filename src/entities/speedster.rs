@@ -376,7 +376,7 @@ impl Speedster {
             }
         }
         if let Some(coordinate) = result {
-            for b in bullets.iter_mut() {
+            for b in bullets.iter() {
                 if b.is_alien_bullet() && b.contains(coordinate) {
                     return None;
                 }

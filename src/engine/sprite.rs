@@ -186,6 +186,9 @@ impl Sprite {
     }
 
     pub fn move_up(&mut self, delta_time: f32) -> Result<State, Error> {
+        if !self.is_spawned {
+            return Ok(State::Null);
+        }
         let mut engine = self.engine.borrow_mut();
         {
             // error checking if the sprite is already touching the boundry
@@ -249,6 +252,9 @@ impl Sprite {
     }
 
     pub fn move_left(&mut self, delta_time: f32) -> Result<State, Error> {
+        if !self.is_spawned {
+            return Ok(State::Null);
+        }
         let mut engine = self.engine.borrow_mut();
         {
             // error checking if the sprite is already touching the boundry
@@ -312,6 +318,9 @@ impl Sprite {
     }
 
     pub fn move_right(&mut self, delta_time: f32) -> Result<State, Error> {
+        if !self.is_spawned {
+            return Ok(State::Null);
+        }
         let mut engine = self.engine.borrow_mut();
         {
             // error checking if the sprite is already touching the boundry
@@ -383,6 +392,9 @@ impl Sprite {
     }
 
     pub fn move_down(&mut self, delta_time: f32) -> Result<State, Error> {
+        if !self.is_spawned {
+            return Ok(State::Null);
+        }
         let mut engine = self.engine.borrow_mut();
         {
             // error checking if the sprite is already touching the boundry
@@ -453,6 +465,9 @@ impl Sprite {
     }
 
     pub fn move_relative_y(&mut self, step: i32) -> Result<State, Error> {
+        if !self.is_spawned {
+            return Ok(State::Null);
+        }
         if step == 0 {
             return Ok(State::Null);
         }
@@ -519,6 +534,9 @@ impl Sprite {
     }
 
     pub fn move_relative_x(&mut self, step: i32) -> Result<State, Error> {
+        if !self.is_spawned {
+            return Ok(State::Null);
+        }
         if step == 0 {
             return Ok(State::Null);
         }
