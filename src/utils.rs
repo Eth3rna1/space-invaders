@@ -6,19 +6,23 @@ use std::io::{stdout, Write};
 
 /// Clears the terminal screen
 pub fn clear() {
-    print!("\x1B[2J\x1B[1;1H");
+    execute!(stdout(), terminal::Clear(terminal::ClearType::All)).expect("Error trying to clear the screen");
+    execute!(stdout(), cursor::MoveTo(0,0)).expect("Error at moving");
+    stdout().flush().expect("Error at flush to stdout");
 }
+//pub fn clear() {
+//    print!("\x1B[2J\x1B[1;1H");
+//}
 
 /// Returns the cursor to the top-left of the screen
 pub fn refresh() {
-    print!("\x1B[H");
+    let mut out = stdout();
+    out.flush().expect("Error at flusing to stdout");
+    execute!(out, cursor::MoveTo(0,0)).expect("Error at moving");
+    out.flush().expect("Error at flusing to stdout");
 }
 //pub fn refresh() {
-//    let mut out = stdout();
-//    //execute!(out, terminal::Clear(terminal::ClearType::All)).expect("Error at clearing");
-//    out.flush().expect("Error at flusing to stdout");
-//    execute!(out, cursor::MoveTo(0,0)).expect("Error at moving");
-//    out.flush().expect("Error at flusing to stdout");
+//    print!("\x1B[H");
 //}
 
 /// Delays any thread action

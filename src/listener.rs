@@ -2,7 +2,9 @@ use crate::errors::{Error, ErrorKind};
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use std::io::Result;
 use std::sync::{Arc, RwLock};
-use winapi::um::winuser::{GetAsyncKeyState, VK_DOWN, VK_LEFT, VK_RIGHT, VK_SPACE, VK_UP};
+use winapi::um::winuser::{GetAsyncKeyState, VK_DOWN, VK_LEFT, VK_RIGHT, VK_SPACE, VK_UP, VK_ESCAPE};
+
+const VK_P: i32 = 0x50;
 
 #[cfg(target_os = "windows")]
 pub fn get_key() -> Option<String> {
@@ -16,6 +18,12 @@ pub fn get_key() -> Option<String> {
     // Check if the Right arrow key (VK_RIGHT) is pressed
     if unsafe { GetAsyncKeyState(VK_RIGHT) } & 0x8000u16 as i16 != 0 {
         return Some("right".to_string());
+    }
+    if unsafe { GetAsyncKeyState(VK_ESCAPE) } & 0x8000u16 as i16 != 0 {
+        return Some("esc".to_string());
+    }
+    if unsafe { GetAsyncKeyState(VK_P) } & 0x8000u16 as i16 != 0 {
+        return Some("p".to_string());
     }
     // Check if the Up arrow key (VK_UP) is pressed
     //if unsafe { GetAsyncKeyState(VK_UP) } & 0x8000u16 as i16 != 0 {
