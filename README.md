@@ -8,7 +8,7 @@ You'll first need to have the build tool `cargo` installed in your machine.
 ### Steps
 * Git clone the repo
 ```console
-git clone https://github.com/Eth3rna1/space-invaders
+git clone https://github.com/Eth3rna1/space-invaders.git
 ```
 * Change directories into the project
 ```console
