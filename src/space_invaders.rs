@@ -244,7 +244,9 @@ impl SpaceInvaders {
                     // speedster vs the player in the end game
                     //self.game_over = true;
                     //self.speedster.destroy();
-                    self.speedster.was_hit();
+                    if !self.bullets[i].is_alien_bullet() {
+                        self.speedster.was_hit();
+                    }
                     if self.speedster.is_dead() {
                         self.game_won = true;
                     }

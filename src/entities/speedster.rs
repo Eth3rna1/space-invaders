@@ -65,7 +65,7 @@ impl Speedster {
             engine.clone(),
             vec![(width - 1, 1), (width - 2, 1), (width - 3, 1)],
             velocity, // horizontal velocity
-            velocity, // vertical velocity
+            velocity / 2.0, // vertical velocity
         )?));
         Ok(Self {
             snow_event: SnowEvent::new(engine.clone()),
@@ -174,7 +174,7 @@ impl Speedster {
                             if sprite.far_top() <= 1 {
                                 self.ydirection = YDirection::Down;
                                 // continuing in the x axis
-                                sprite.move_left(delta_time)
+                                sprite.move_relative_x(-1)
                             } else {
                                 sprite.move_up(delta_time)
                             }
@@ -183,7 +183,7 @@ impl Speedster {
                             if sprite.far_bottom() >= self.height {
                                 self.ydirection = YDirection::Up;
                                 // continuing in the x axis
-                                sprite.move_left(delta_time)
+                                sprite.move_relative_x(-1)
                             } else {
                                 sprite.move_down(delta_time)
                             }
@@ -201,7 +201,7 @@ impl Speedster {
                             if sprite.far_top() <= 1 {
                                 self.ydirection = YDirection::Down;
                                 // continuing in the x position
-                                sprite.move_right(delta_time)
+                                sprite.move_relative_x(1)
                             } else {
                                 sprite.move_up(delta_time)
                             }
@@ -210,7 +210,7 @@ impl Speedster {
                             if sprite.far_bottom() >= self.height {
                                 self.ydirection = YDirection::Up;
                                 // continuing in the x position
-                                sprite.move_right(delta_time)
+                                sprite.move_relative_x(1)
                             } else {
                                 sprite.move_down(delta_time)
                             }

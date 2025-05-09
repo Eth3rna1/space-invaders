@@ -1,6 +1,8 @@
 /*
     Unspecific functions
 */
+use crossterm::{execute, terminal, cursor};
+use std::io::{stdout, Write};
 
 /// Clears the terminal screen
 pub fn clear() {
@@ -11,6 +13,13 @@ pub fn clear() {
 pub fn refresh() {
     print!("\x1B[H");
 }
+//pub fn refresh() {
+//    let mut out = stdout();
+//    //execute!(out, terminal::Clear(terminal::ClearType::All)).expect("Error at clearing");
+//    out.flush().expect("Error at flusing to stdout");
+//    execute!(out, cursor::MoveTo(0,0)).expect("Error at moving");
+//    out.flush().expect("Error at flusing to stdout");
+//}
 
 /// Delays any thread action
 pub fn sleep(n: f64) {
