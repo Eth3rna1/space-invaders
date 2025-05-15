@@ -63,20 +63,27 @@ impl ZigZagEvent {
 
     fn move_down(&mut self, delta_time: f32) -> Option<Coordinate> {
         let mut speedster = self.speedster.borrow_mut();
-        return match speedster.move_down(delta_time) {
+        match speedster.move_down(delta_time) {
             Ok(state) => match state {
-                State::Collided(coordinate) => Some(coordinate),
-                _ => None,
+                State::Collided(coordinate) => {
+                    self.is_finished = true;
+                    return Some(coordinate)
+                },
+                _ => (),
             },
             Err(error) => match error.kind() {
                 ErrorKind::OutOfBounds => {
                     self.is_finished = true;
                     let _ = speedster.destroy();
-                    None
                 }
-                _ => None,
+                _ => (),
             },
         };
+        // let result = match self.direction {
+        //     XDirection::Left => speedster.move_relative_x()
+        //     XDirection::Right => {}
+        // }
+        None
     }
 
     fn position(&self) -> usize {
@@ -100,10 +107,9 @@ impl ZigZagEvent {
     pub fn step(&mut self, delta_time: f32) -> Option<Coordinate> {
         let position = self.position();
         if position % 33 == 0 && position != 0 {
-            //self.wall_hit_counter = 0;
-            if let Some(coordinate) = self.move_down(delta_time) {
-                self.is_finished = true;
-                return Some(coordinate);
+            let result = self.move_down(delta_time);
+            if result.is_some() {
+                return result;
             }
         }
         let mut speedster = self.speedster.borrow_mut();
@@ -113,7 +119,10 @@ impl ZigZagEvent {
         };
         return match result {
             Ok(state) => match state {
-                State::Collided(coordinate) => Some(coordinate),
+                State::Collided(coordinate) => {
+                    self.is_finished = true;
+                    Some(coordinate)
+                },
                 _ => None,
             },
             Err(error) => match error.kind() {
