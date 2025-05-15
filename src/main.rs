@@ -34,7 +34,7 @@ pub const PIXEL_CHAR: char = '⨊';
 pub const BACKGROUND_CHAR: char = '.';
 
 pub const OBSTACLE_WAIT_TIME: f32 = 2.0; // seconds
-pub const OBSTACLE_SPEED: f32 = 80.0;
+pub const OBSTACLE_SPEED: f32 = 65.0;
 
 pub const ALIEN_STEP_PER_DELTA: f32 = 15.0;
 pub const BULLET_STEP_PER_DELTA: f32 = 9.0;

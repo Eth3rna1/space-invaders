@@ -260,9 +260,13 @@ impl SpaceInvaders {
                         let mut bullet = &mut self.bullets[a];
                         if bullet.contains(coordinate) && bullet.is_alien_bullet() {
                             bullet.destroy();
-                            self.bullets[i].destroy();
+                            // self.bullets[i].destroy();
                         }
                     }
+                    // getting bullets to despawn upon contact with anything
+                    // instead of stacking. The destroy() call must be located
+                    // in this line.
+                    self.bullets[i].destroy();
                 }
             }
         }
