@@ -1,6 +1,9 @@
 ## Changes
 
-* Created the official README file
+* Added three methods for the `Sprite` structure
+    - `x() -> usize`, returns far left position
+    - `y() -> usize`, returns far top position
+    - `position() -> Coordinate`, returns top left corner coordinate
 
 ## To-Do:
 

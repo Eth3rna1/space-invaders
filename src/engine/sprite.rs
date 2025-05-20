@@ -92,6 +92,18 @@ impl Sprite {
         &mut self.coordinates
     }
 
+    pub fn x(&self) -> usize {
+        self.bounding_box.far_left
+    }
+
+    pub fn y(&self) -> usize {
+        self.bounding_box.far_top
+    }
+
+    pub fn position(&self) -> Coordinate {
+        (self.x(), self.y())
+    }
+
     pub fn set_x_velocity(&mut self, velocity: f32) {
         self.x_velocity = velocity;
     }
