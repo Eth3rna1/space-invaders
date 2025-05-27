@@ -146,7 +146,12 @@ impl Speedster {
         return match movement_result {
             Ok(state) => match state {
                 // collided with a bullet
-                State::Collided(coordinate) => Some(coordinate),
+                State::Collided(coordinate) => {
+                    // Modifying velocity for the next stage
+                    let orig_vel = sprite.x_velocity();
+                    sprite.set_x_velocity(orig_vel - (orig_vel / 5.0));
+                    Some(coordinate)
+                },
                 _ => None,
             },
             Err(error) => match error.kind() {
