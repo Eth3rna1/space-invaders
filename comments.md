@@ -1,9 +1,6 @@
 ## Changes
 
-* Added three methods for the `Sprite` structure
-    - `x() -> usize`, returns far left position
-    - `y() -> usize`, returns far top position
-    - `position() -> Coordinate`, returns top left corner coordinate
+* Simplified and documented the `spawn_aliens()` function.
 
 ## To-Do:
 

@@ -128,6 +128,7 @@ pub fn find_alien_and_destroy(aliens: &mut Vec<Alien>, coordinate: Coordinate) -
     false
 }
 
+/// Iterates over the plane making the necessary calculations to spawn the `Alien` sprites
 pub fn spawn_aliens(
     engine: Rc<RefCell<Engine>>,
     count: usize,
@@ -136,25 +137,29 @@ pub fn spawn_aliens(
     let eng = engine.borrow();
     let mut collector: Vec<Alien> = Vec::new();
     let width = 4; // sprite width
-    let alien_width = 3 * width; // total width of each alien (3 sprites per alien)
-    let space_between = (eng.width - alien_width * count) / (count + 1); // Calculate space between aliens
-
-    // Loop to generate alien rows
+    let delta = eng.width / count;
     for row in [4, 8, 12] {
-        let mut pointer = 0;
-        while pointer + alien_width <= eng.width {
-            // Ensure we stay within bounds
+        for col in 0..eng.width {
+            if col % delta != 0 {
+                // this if statement automatically deals with even
+                // spacing. For example, if count was 6, for every 6th
+                // iteration, an `Alien` entity will be spawned
+                continue;
+            }
+            if col + width >= eng.width {
+                // this if statement makes sure to not go over the
+                // plane dimensions and cause an overflow
+                continue;
+            }
             let position = vec![
-                (pointer, row),
-                (pointer + 1, row),
-                (pointer + 2, row),
-                (pointer, row + 1),
-                //(pointer + 1, row + 1),
-                (pointer + 2, row + 1),
+                (col, row),
+                (col + 1, row),
+                (col + 2, row),
+                (col, row + 1),
+                //(pointer + 1, row + 1), // not including it for the alien aesthetic
+                (col + 2, row + 1),
             ];
             collector.push(Alien::new(engine.clone(), position, velocity)?);
-            pointer += alien_width + space_between; // Update pointer to next position
-                                                    //pointer += space_between;
         }
     }
     Ok(collector)
