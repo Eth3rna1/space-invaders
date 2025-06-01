@@ -1,3 +1,18 @@
+//! SpaceInvaders Game Controller
+//!
+//! This module serves as the main controller for the Space Invaders game. It orchestrates 
+//! the core gameplay loop by managing the following elements:
+//!
+//! - **Player (Shooter):** Moves horizontally and fires bullets.
+//! - **Enemies (Aliens):** Move in formation and shoot back at the player.
+//! - **Boss (Speedster):** Spawns after all aliens are destroyed, with multiple stages.
+//! - **Bullets:** Track movement and resolve collisions between entities.
+//! - **Input Handling:** Processes user keystrokes (movement, shoot, pause, quit).
+//! - **Game State:** Tracks pause, win, loss, and quit conditions.
+//! - **Rendering:** Refreshes the screen with the current game state.
+//!
+//! It interfaces with the rendering engine and entity systems (like Alien, Shooter, Bullet),
+//! and updates the game world each frame based on user input and elapsed time.
 use crate::engine::sprite::State;
 use crate::engine::Coordinate;
 use crate::engine::Engine;

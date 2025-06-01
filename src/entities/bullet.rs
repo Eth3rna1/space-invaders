@@ -1,3 +1,5 @@
+//! Contains the logic for bullets such as
+//! a bullets interaction with another entity
 use crate::engine::sprite::Sprite;
 use crate::engine::sprite::State;
 use crate::engine::Coordinate;
@@ -45,6 +47,8 @@ impl Bullet {
         self.sprite.is_spawned()
     }
 
+    /// sets a bullet to be an aliens bullet, meaning the bullet
+    /// will travel downwards towards the player
     pub fn to_alien_bullet(mut self) -> Self {
         self.is_alien_bullet = true;
         self
@@ -58,6 +62,7 @@ impl Bullet {
         self.sprite.contains(coordinate)
     }
 
+    /// The update function for the entity
     pub fn step(&mut self, delta_time: f32) -> Option<Coordinate> {
         let result = match self.is_alien_bullet {
             true => self.sprite.move_down(delta_time),

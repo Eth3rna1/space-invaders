@@ -67,8 +67,8 @@ impl ZigZagEvent {
             Ok(state) => match state {
                 State::Collided(coordinate) => {
                     self.is_finished = true;
-                    return Some(coordinate)
-                },
+                    return Some(coordinate);
+                }
                 _ => (),
             },
             Err(error) => match error.kind() {
@@ -122,7 +122,7 @@ impl ZigZagEvent {
                 State::Collided(coordinate) => {
                     self.is_finished = true;
                     Some(coordinate)
-                },
+                }
                 _ => None,
             },
             Err(error) => match error.kind() {

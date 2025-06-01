@@ -1,3 +1,5 @@
+//! aliens.rs
+//! Contains logic and structures for managing alien invaders.
 use crate::engine::sprite::Sprite;
 use crate::engine::sprite::State;
 use crate::engine::Coordinate;
@@ -9,7 +11,6 @@ use crate::ALIEN_STEP_PER_DELTA;
 
 use std::cell::RefCell;
 use std::rc::Rc;
-//use std::slice::IterMut;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
@@ -72,19 +73,15 @@ impl Alien {
         Ok(())
     }
 
-    //pub fn offset_x(&mut self, offset: f32) {
-    //    self.sprite.offset_exact_x(offset);
-    //}
-
     pub fn move_y(&mut self, step: i32) -> Result<State, Error> {
         self.sprite.move_relative_y(step)
     }
 
+    /// The update function for movement
     pub fn step(&mut self, step: i32) -> Option<Coordinate> {
         if self.sprite.is_destroyed() {
             return None;
         }
-        //self.sprite.offset_exact_x(step as f32);
         return match self.sprite.move_relative_x(step) {
             Ok(state) => {
                 if let State::Collided(coordinate) = state {
@@ -101,6 +98,7 @@ impl Alien {
         self.sprite.is_destroyed()
     }
 
+    /// Returns a coordinate for which a bullet should spawn
     pub fn head(&self) -> Coordinate {
         (
             (self.sprite.far_right() - (self.sprite.far_right() - self.sprite.far_left()) / 2),

@@ -1,4 +1,8 @@
-//! Speedster implementation
+//! Speedster sprite logic implementation
+//! The speedster is unique in this game and acts like a mini-boss.
+//! The speedster has 3 lives, each with a different action.
+//! On the 3rd life, the speedster is able to spawn obstacles which
+//! makes it harder for the player to kill.
 use crate::engine::sprite::Sprite;
 use crate::engine::sprite::State;
 use crate::engine::Coordinate;
@@ -8,7 +12,6 @@ use crate::entities::Bullet;
 use crate::entities::Obstacle;
 use crate::errors::{Error, ErrorKind};
 use crate::utils;
-//use crate::utils::rand_num;
 
 use crate::BULLET_STEP_PER_DELTA;
 use crate::OBSTACLE_SPEED;
@@ -64,7 +67,7 @@ impl Speedster {
         let mut sprite = Rc::new(RefCell::new(Sprite::new(
             engine.clone(),
             vec![(width - 1, 1), (width - 2, 1), (width - 3, 1)],
-            velocity, // horizontal velocity
+            velocity,       // horizontal velocity
             velocity / 2.0, // vertical velocity
         )?));
         Ok(Self {
@@ -93,6 +96,7 @@ impl Speedster {
         self.sprite.borrow().far_left()
     }
 
+    /// Returns a coordinate for which a bullet should be spawned
     pub fn head(&self) -> Coordinate {
         let sprite = self.sprite.borrow();
         (
@@ -122,6 +126,8 @@ impl Speedster {
         self.sprite.borrow().contains(coordinate)
     }
 
+    /// Resets the sprites position to being at the
+    /// top right corner of the plane
     pub fn reset_position(&mut self) {
         self.destroy();
         self.xdirection = XDirection::Left;
@@ -134,6 +140,7 @@ impl Speedster {
         sprite.recalc_bounding_box();
     }
 
+    /// Stage 1, the sprite moves left to right and right to left.
     pub fn stage_1(&mut self, delta_time: f32) -> Option<Coordinate> {
         let mut sprite = self.sprite.borrow_mut();
         // encapsulating the movement methods in a single function for more
@@ -151,7 +158,7 @@ impl Speedster {
                     let orig_vel = sprite.x_velocity();
                     sprite.set_x_velocity(orig_vel - (orig_vel / 5.0));
                     Some(coordinate)
-                },
+                }
                 _ => None,
             },
             Err(error) => match error.kind() {
@@ -168,6 +175,7 @@ impl Speedster {
         };
     }
 
+    /// Stage 2, the sprite moves side to side and ocassionally downwards
     pub fn stage_2(&mut self, delta_time: f32) -> Option<Coordinate> {
         let mut sprite = self.sprite.borrow_mut();
         let result: Result<State, Error> = match self.xdirection {
@@ -244,6 +252,8 @@ impl Speedster {
         };
     }
 
+    /// A stage 3 exclusive function. Places the speedster in the center
+    /// of the planes x axis.
     pub fn s3_place_speedster_in_center_x(&mut self) {
         self.destroy();
         let mut sprite = self.sprite.borrow_mut();
@@ -254,14 +264,7 @@ impl Speedster {
         sprite.recalc_bounding_box();
     }
 
-    //fn deallocate_destroyed_obstacles(&mut self) {
-    //    for i in (0..self.obstacles.len()).rev() {
-    //        if self.obstacles[i].is_destroyed() {
-    //            let _ = self.obstacles.remove(i);
-    //        }
-    //    }
-    //}
-
+    /// Spawns barrier of obstacles around the speedster to block player bullets
     fn place_guard_on_speedster(&mut self) -> Result<Obstacle, Error> {
         let mut guard_position: Vec<Coordinate> = Vec::new();
         // procedurally constructing the guard
@@ -278,11 +281,12 @@ impl Speedster {
             guard_position.extend([(fr + 4, 0), (fr + 4, 1), (fr + 4, 2), (fr + 4, 3)]);
         }
         let mut obstacle = Obstacle::new(self.engine.clone(), guard_position, OBSTACLE_SPEED)?;
-        obstacle.set_wait_time(1000.0); // making the obstacle last
+        obstacle.set_wait_time(1000.0); // making the obstacle last a while
         obstacle.spawn();
         Ok(obstacle)
     }
 
+    /// Updates all obstacles
     fn run_obstacles(&mut self, delta_time: f32) -> Option<Coordinate> {
         for o in self.obstacles.iter_mut() {
             let result = o.step(delta_time);
@@ -293,6 +297,8 @@ impl Speedster {
         None
     }
 
+    /// Allows for the speedster to look downwards and check if there something
+    /// blocking the its view for shooting
     fn has_obstruction(&self, bullets: &[Bullet]) -> bool {
         let sprite = self.sprite.borrow();
         let x = sprite.far_right() - (sprite.far_right() - sprite.far_left()) / 2;
@@ -307,6 +313,7 @@ impl Speedster {
         false
     }
 
+    /// Making sure an alien bullet isn't destroyed after colliding with another alien bullet
     fn eval_with_bullets(&self, bullets: &[Bullet], coordinate: &Coordinate) -> Option<Coordinate> {
         for b in bullets.iter() {
             if b.is_alien_bullet() && b.contains(*coordinate) {
@@ -316,6 +323,7 @@ impl Speedster {
         Some(*coordinate)
     }
 
+    /// Stage 3, where the speedster starts spawning obstacles
     pub fn stage_3(&mut self, delta_time: f32, bullets: &mut Vec<Bullet>) -> Option<Coordinate> {
         //let mut guard: Obstacle;
         if !self.stage_3_initialized {
@@ -360,6 +368,7 @@ impl Speedster {
         self.run_obstacles(delta_time)
     }
 
+    /// The update function
     pub fn step(&mut self, delta_time: f32, bullets: &mut Vec<Bullet>) -> Option<Coordinate> {
         let result: Option<Coordinate> = match self.state {
             EndGameState::Stage1 => self.stage_1(delta_time),
@@ -390,6 +399,7 @@ impl Speedster {
         result
     }
 
+    /// A function that allows for other entities to state that the speedster was hit
     pub fn was_hit(&mut self) {
         self.destroy();
         self.reset_position();
@@ -405,6 +415,7 @@ impl Speedster {
         let _ = sprite.destroy();
     }
 
+    /// For readability purposes
     pub fn stages(&self) -> u8 {
         3
     }

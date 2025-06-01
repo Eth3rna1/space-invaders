@@ -1,3 +1,4 @@
+/// Logic for the shooter sprite. The sprite which the player can move.
 use crate::engine::sprite::Sprite;
 use crate::engine::sprite::State;
 use crate::engine::Coordinate;
@@ -23,14 +24,17 @@ impl Shooter {
         })
     }
 
+    /// Returns its X position
     pub fn x(&self) -> usize {
         self.sprite.far_left()
     }
 
+    /// Returns an array of coordinates; position.
     pub fn coordinates(&self) -> &[Coordinate] {
         self.sprite.coordinates()
     }
 
+    /// Returns all x values for its horizontal position
     pub fn xs(&self) -> [usize; 3] {
         let mut x: [usize; 3] = [0, 0, 0];
         let fl = self.sprite.far_left();
@@ -48,6 +52,7 @@ impl Shooter {
         self.sprite.contains(coordinate)
     }
 
+    /// The update function
     pub fn step(&mut self, key: &str, delta_time: f32) -> Option<Coordinate> {
         // moving the sprite
         let result: Result<State, Error> = match key {
@@ -65,6 +70,7 @@ impl Shooter {
         };
     }
 
+    /// Returns a coordinate for where a bullet should be spawned
     pub fn head(&self) -> Coordinate {
         (
             (self.sprite.far_right() - (self.sprite.far_right() - self.sprite.far_left()) / 2),

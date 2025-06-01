@@ -1,7 +1,8 @@
 #![allow(warnings)]
-/*
-    Remaking the game Space Invaders in ASCII
-*/
+//! Main file for running the ASCII Space Invaders game.
+//!
+//! Sets up the game, runs the main loop handling input, updates, and rendering,
+//! and shows the final result when the game ends.
 mod engine;
 mod entities;
 mod errors;

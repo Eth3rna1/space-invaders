@@ -1,4 +1,6 @@
-//! Obstacle sprites for the last stage of the end game
+//! Obstacle sprites for the last stage of the end game.
+//!
+//! Obstacles in this game only spawn and drop downwards, trying to hit the player.
 use crate::engine::sprite::Sprite;
 use crate::engine::sprite::State;
 use crate::engine::Coordinate;
@@ -45,6 +47,9 @@ impl Obstacle {
         self.spawn_wait_time = s;
     }
 
+    /// Obstacles are not entities to be shot at and destroyed.
+    /// Rather this function gives obstacles the capability to be
+    /// destroyed when crashing or being shot at.
     pub fn to_destroy_on_contact(&mut self) {
         self.destroy_on_contact = true;
     }
@@ -58,10 +63,8 @@ impl Obstacle {
     }
 
     pub fn is_ready_to_spawn(&mut self) -> bool {
-        if self.spawn_timer.elapsed().as_secs_f32() < self.spawn_wait_time {
-            return false;
-        }
-        true
+        // returns
+        self.spawn_timer.elapsed().as_secs_f32() > self.spawn_wait_time
     }
 
     pub fn set_velocity(&mut self, velocity: f32) {
@@ -93,10 +96,13 @@ impl Obstacle {
         self.spawn_timer = Instant::now();
     }
 
+    /// Because the obstacles drop downwards after a given time,
+    /// let_drop() sets such timer to 0.0 indicating to drop immediately.
     pub fn let_drop(&mut self) {
         self.wait_time = 0.0;
     }
 
+    /// The update function for obstacles
     pub fn step(&mut self, delta_time: f32) -> Option<Coordinate> {
         if self.is_destroyed() {
             return None;
