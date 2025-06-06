@@ -236,7 +236,12 @@ impl Speedster {
         };
         return match result {
             Ok(state) => match state {
-                State::Collided(coordinate) => Some(coordinate),
+                State::Collided(coordinate) => {
+                    // Speedster was previously slowed down,
+                    // this returns it to its normal speed.
+                    sprite.set_x_velocity(SPEEDSTER_STEP_PER_DELTA);
+                    Some(coordinate)
+                }
                 _ => None,
             },
             Err(error) => match error.kind() {
